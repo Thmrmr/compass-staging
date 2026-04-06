@@ -35,7 +35,7 @@ async function callClaude(apiKey,messages,opts={}){
   if(!r.ok){const e=await r.text();throw new Error(e||"Claude API error");}
   return r.json();
 }
-const TABS=[{id:"home",label:"Home",icon:Home},{id:"crm",label:"CRM",icon:Target},{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"agents",label:"Agents",icon:Sparkles},{id:"meetings",label:"Meetings",icon:Calendar},{id:"marketing",label:"Marketing",icon:TrendingUp},{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network},{id:"admin",label:"Admin",icon:Settings,ao:true},{id:"setup",label:"DB Setup",icon:Database,ao:true}];
+const TABS=[{id:"home",label:"Home",icon:Home},{id:"crm",label:"CRM",icon:Target},{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"agents",label:"Agents",icon:Sparkles},{id:"meetings",label:"Meetings",icon:Calendar},{id:"marketing",label:"Marketing",icon:TrendingUp},{id:"admin",label:"Admin",icon:Settings,ao:true},{id:"setup",label:"DB Setup",icon:Database,ao:true}];
 const M={fontFamily:"'DM Mono',monospace"};
 const T={fontFamily:"'Optician Sans','DM Sans',sans-serif"};
 const CS={background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:14,overflow:"hidden"};
@@ -864,6 +864,13 @@ export default function App(){
 
         {/* ── Bottom Controls ── */}
         <div style={{borderTop:"1px solid rgba(0,135,159,0.06)",padding:sb?"8px 12px":"8px",display:"flex",flexDirection:"column",gap:3,flexShrink:0,alignItems:sb?"stretch":"center"}}>
+          {/* Framework + Engage OS */}
+          {[{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
+            <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{width:sb?"100%":40,height:36,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:on?"#023c47":"transparent",border:"none",cursor:"pointer",color:on?"#D0F94A":"var(--muted)",padding:sb?"0 10px":0,transition:"all .18s"}}
+              onMouseEnter={e=>{if(!on){e.currentTarget.style.color="var(--text)";e.currentTarget.style.background="rgba(0,135,159,0.04)";}}}
+              onMouseLeave={e=>{if(!on){e.currentTarget.style.color="var(--muted)";e.currentTarget.style.background="transparent";}}}>
+              <I size={16} strokeWidth={on?2:1.5}/>{sb&&<span style={{fontSize:12,fontWeight:on?600:500,color:on?"#fff":"#4A5E6E"}}>{t.label}</span>}
+            </button>);})}
           {/* Daily Intel */}
           <button onClick={()=>sIntel(!intel)} style={{width:sb?"100%":40,height:36,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:intel?"rgba(0,212,156,0.08)":"transparent",border:"none",cursor:"pointer",color:intel?"#00D49C":"var(--muted)",padding:sb?"0 10px":0,transition:"all .18s"}}
             onMouseEnter={e=>{if(!intel)e.currentTarget.style.color="#00D49C";}}
