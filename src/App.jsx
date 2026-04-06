@@ -76,10 +76,10 @@ async function speakTTS(text,elKey){
   try{const r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+vid+"/stream",{method:"POST",headers:{"xi-api-key":elKey,"Content-Type":"application/json"},body:JSON.stringify({text:text.slice(0,2500),model_id:"eleven_multilingual_v2",voice_settings:{stability:0.5,similarity_boost:0.75}})});
   if(!r.ok)throw new Error("TTS failed");const blob=await r.blob();const url=URL.createObjectURL(blob);const a=new Audio(url);a.play();}catch(e){console.warn("TTS error:",e);if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(text);window.speechSynthesis.speak(u);}}}
 
-function Chat({deals,profile,elKey}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
+function Chat({deals,profile,elKey,claudeKey}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
 useEffect(()=>{end.current?.scrollIntoView({behavior:"smooth"});},[ms]);
 const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);sMs(p=>[...p,{role:"user",content:t}]);const a=deals.filter(d=>d.status==="Active");const sys=`You are COMPASS AI for HUMAIN CRM. User: ${profile?.full_name}. ${a.length} active deals, SAR ${a.reduce((s,d)=>s+(d.expected_value||0),0).toLocaleString()} pipeline. Top: ${a.slice(0,5).map(d=>d.client_name+" ("+d.stage+")").join(", ")}. Be concise, strategic.`;
-try{const d=await callClaude(elKey,[...ms.slice(-10),{role:"user",content:t}],{system:sys});sMs(p=>[...p,{role:"assistant",content:d.content?.map(c=>c.text||"").join("")||"No response"}]);}catch(x){sMs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{sB(false);}};
+try{const d=await callClaude(claudeKey,[...ms.slice(-10),{role:"user",content:t}],{system:sys});sMs(p=>[...p,{role:"assistant",content:d.content?.map(c=>c.text||"").join("")||"No response"}]);}catch(x){sMs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{sB(false);}};
 return(<div style={CS}><div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8}}><div style={{width:26,height:26,borderRadius:7,background:"rgba(0,135,159,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#00879F"}}><MessageSquare size={13}/></div><span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)"}}>COMPASS AI</span></div>
 <div style={{height:280,overflowY:"auto",padding:14}}>{ms.length===0&&<div style={{textAlign:"center",paddingTop:50,color:"var(--muted)",fontSize:13}}>Ask about deals, pipeline, or strategy</div>}{ms.map((m,i)=><div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"80%"}}><div style={{padding:"9px 13px",borderRadius:11,fontSize:13,lineHeight:1.6,background:m.role==="user"?"#0D1B1E":"rgba(0,135,159,0.06)",color:m.role==="user"?"#fff":"var(--text)",border:m.role==="assistant"?"1px solid rgba(0,135,159,0.1)":"none",whiteSpace:"pre-wrap"}}>{m.content}</div>{m.role==="assistant"&&<button onClick={()=>speakTTS(m.content,elKey)} style={{marginTop:3,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:2}}><Volume2 size={12}/></button>}</div></div>)}{b&&<div style={{...M,color:"var(--muted)",fontSize:11}}>Thinking...</div>}<div ref={end}/></div>
 <div style={{padding:"10px 12px",borderTop:"1px solid var(--border)",display:"flex",gap:8}}><button onClick={()=>{if(stt.listening){stt.stop();}else{stt.start();}}} style={{padding:"9px",background:stt.listening?"rgba(255,75,75,0.1)":"transparent",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer",color:stt.listening?"#FF4B4B":"var(--muted)"}}>
@@ -248,7 +248,7 @@ async function runAIAgent(token,agentName,prompt){
   }catch(e){return"Error: "+e.message;}
 }
 
-async function runAllAgents(token,deals,leads,assets,debriefs){
+async function runAllAgents(token,deals,leads,assets,debriefs,claudeKey){
   const results={};
   results.pipeline_guardian=await runPipelineGuardian(token,deals);
   results.deal_scorer=await runDealScorer(token,deals);
@@ -273,7 +273,7 @@ async function runAllAgents(token,deals,leads,assets,debriefs){
   const wonLost=deals.filter(d=>d.status==="Won"||d.status==="Lost");
   if(wonLost.length>2){
     const wlCtx=wonLost.slice(0,8).map(d=>d.client_name+" ("+d.sector+") = "+d.status+", value: SAR "+(d.expected_value||0).toLocaleString()).join("; ");
-    results.winloss_intel=await runAIAgent(token,"Win/Loss Intel","Analyze won/lost patterns: "+wlCtx+". What differentiates wins from losses? 3-5 insights.");
+    results.winloss_intel=await runAIAgent(token,"Win/Loss Intel","Analyze won/lost patterns: "+wlCtx+". What differentiates wins from losses? 3-5 insights.",claudeKey);
   }else{results.winloss_intel="Not enough won/lost data";}
 
   results.team_coach=await runAIAgent(token,"Team Coach",
@@ -286,7 +286,7 @@ async function runAllAgents(token,deals,leads,assets,debriefs){
   return results;
 }
 
-function AgentsTab({token,deals,leads,assets,debriefs,onRefresh}){
+function AgentsTab({token,deals,leads,assets,debriefs,onRefresh,claudeKey}){
   const[queue,sQueue]=useState([]);const[running,sRunning]=useState(null);const[results,sResults]=useState({});const[runAll,sRunAll]=useState(false);
   const loadQueue=useCallback(()=>{if(token)q("/rest/v1/agent_queue?select=*&order=created_at.desc&limit=40",token).then(sQueue).catch(()=>{});},[token]);
   useEffect(()=>{loadQueue();},[loadQueue]);
@@ -304,7 +304,7 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh}){
         default:{
           const active=deals.filter(d=>d.status==="Active");
           const ctx=active.slice(0,10).map(d=>d.client_name+" ("+d.sector+", "+d.stage+")").join("; ");
-          res=await runAIAgent(token,agent.name,"You are "+agent.name+" agent. "+agent.desc+". Analyze: "+ctx+". Provide 3-5 actionable insights. Be concise.");
+          res=await runAIAgent(token,agent.name,"You are "+agent.name+" agent. "+agent.desc+". Analyze: "+ctx+". Provide 3-5 actionable insights. Be concise.",claudeKey);
         }
       }
       sResults(p=>({...p,[agent.key]:res}));loadQueue();if(onRefresh)onRefresh();
@@ -313,7 +313,7 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh}){
   };
 
   const execAll=async()=>{sRunAll(true);
-    try{const res=await runAllAgents(token,deals,leads,assets,debriefs);sResults(res);loadQueue();if(onRefresh)onRefresh();}
+    try{const res=await runAllAgents(token,deals,leads,assets,debriefs,claudeKey);sResults(res);loadQueue();if(onRefresh)onRefresh();}
     catch(e){console.error(e);}finally{sRunAll(false);}
   };
 
@@ -373,7 +373,7 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh}){
   </div>);
 }
 
-function Meetings({deals,profile,token,elKey}){
+function Meetings({deals,profile,token,elKey,claudeKey}){
   const[sel,sSel]=useState("");const[brief,sBrief]=useState("");const[busy,sBusy]=useState(false);
   const[view,sView]=useState("brief");
   const[dbf,sDbf]=useState({client_name:"",sector:"",confirmed:"",challenged:"",new_signal:"",next_step:"",deal_id:""});
@@ -384,7 +384,7 @@ function Meetings({deals,profile,token,elKey}){
   useEffect(()=>{if(token)q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",token).then(sDebriefs).catch(()=>{});},[token]);
 
   const gen=async()=>{const deal=a.find(d=>d.id===sel);if(!deal)return;sBusy(true);sBrief("");
-    try{const d=await callClaude(elKey,[{role:"user",content:"Generate a meeting brief for:\nClient: "+deal.client_name+"\nSector: "+deal.sector+"\nStage: "+deal.stage+"\nValue: SAR "+(deal.expected_value||0).toLocaleString()+"\nContact: "+(deal.contact_name||"Unknown")+"\nNext Step: "+(deal.next_step||"None")+"\n\nProvide: 1) Client Context 2) Belief Statement 3) Conversation Flow 4) Key Questions 5) Next Step. Saudi/HUMAIN specific."}],{max_tokens:1500});
+    try{const d=await callClaude(claudeKey,[{role:"user",content:"Generate a meeting brief for:\nClient: "+deal.client_name+"\nSector: "+deal.sector+"\nStage: "+deal.stage+"\nValue: SAR "+(deal.expected_value||0).toLocaleString()+"\nContact: "+(deal.contact_name||"Unknown")+"\nNext Step: "+(deal.next_step||"None")+"\n\nProvide: 1) Client Context 2) Belief Statement 3) Conversation Flow 4) Key Questions 5) Next Step. Saudi/HUMAIN specific."}],{max_tokens:1500});
     sBrief(d.content?.map(c=>c.text||"").join("")||"No response");}catch(x){sBrief("Error: "+x.message);}finally{sBusy(false);}};
 
   const saveDebrief=async()=>{if(!dbf.client_name.trim()){alert("Client name required");return;}sDbSv(true);
@@ -477,11 +477,11 @@ function DailyIntel({deals,profile,open,onClose}){
 const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...T,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...M,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — COMING SOON</div></div>;
 
 export default function App(){
-  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[elKey,sElKey]=useState('');
+  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
   const tk=session?.access_token;const isA=profile?.role==="admin";
   const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[debriefs,sDeb]=useState([]);
   const ld=useCallback(()=>{if(tk){q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);q("/rest/v1/leads?select=*&order=created_at.desc",tk).then(d=>sLeads(d||[])).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",tk).then(d=>sAssets(d||[])).catch(()=>{});q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",tk).then(d=>sDeb(d||[])).catch(()=>{});}},[tk]);
-  useEffect(()=>{if(!tk)return;const uid=session.user?.id;q('/rest/v1/system_config?config_key=eq.elevenlabs_api_key&select=config_value',tk).then(d=>{if(d?.[0]?.config_value)sElKey(d[0].config_value.trim());}).catch(()=>{});q(`/rest/v1/profiles?id=eq.${uid}&select=*`,tk).then(d=>{if(d?.[0])sP(d[0]);}).catch(console.error);ld();},[tk]);
+  useEffect(()=>{if(!tk)return;const uid=session.user?.id;q('/rest/v1/system_config?config_key=eq.elevenlabs_api_key&select=config_value',tk).then(d=>{if(d?.[0]?.config_value)sElKey(d[0].config_value.trim());}).catch(()=>{});q('/rest/v1/system_config?config_key=eq.claude_api_key&select=config_value',tk).then(d=>{if(d?.[0]?.config_value)sCK(d[0].config_value.replace(/\u2014/g,'--').replace(/[^\x20-\x7E]/g,'').trim());}).catch(()=>{});q(`/rest/v1/profiles?id=eq.${uid}&select=*`,tk).then(d=>{if(d?.[0])sP(d[0]);}).catch(console.error);ld();},[tk]);
   // Poll notifications
   useEffect(()=>{if(!tk||!isA)return;const poll=()=>q("/rest/v1/access_requests?status=eq.Pending&select=id",tk).then(d=>sN(d?.length||0)).catch(()=>{});poll();const iv=setInterval(poll,60000);return()=>clearInterval(iv);},[tk,isA]);
 
@@ -490,11 +490,11 @@ export default function App(){
   const nm=profile?.full_name||session.user?.email?.split("@")[0]||"User";const hr=new Date().getHours();const gr=hr<12?"Good Morning":hr<17?"Good Afternoon":"Good Evening";const ac=deals.filter(d=>d.status==="Active");const pv=ac.reduce((s,d)=>s+(d.expected_value||0),0);const wo=deals.filter(d=>d.status==="Won");const sr=search?deals.filter(d=>(d.client_name||"").toLowerCase().includes(search.toLowerCase())).slice(0,8):[];
 
   const renderTab=()=>{switch(tab){
-    case"home":return(<div><div style={{marginBottom:28}}><div style={{...T,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{gr}, {nm.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={ac.length} l="ACTIVE DEALS" c="#00879F"/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE VALUE" c="#00D49C"/><KPI v={wo.length} l="WON DEALS" c="#D0F94A"/><KPI v={SECTORS.filter(s=>ac.some(d=>d.sector===s)).length} l="SECTORS ACTIVE" c="#00879F"/></div><Chat deals={deals} profile={profile} elKey={elKey}/></div>);
+    case"home":return(<div><div style={{marginBottom:28}}><div style={{...T,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{gr}, {nm.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={ac.length} l="ACTIVE DEALS" c="#00879F"/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE VALUE" c="#00D49C"/><KPI v={wo.length} l="WON DEALS" c="#D0F94A"/><KPI v={SECTORS.filter(s=>ac.some(d=>d.sector===s)).length} l="SECTORS ACTIVE" c="#00879F"/></div><Chat deals={deals} profile={profile} elKey={elKey} claudeKey={claudeKey}/></div>);
     case"crm":return(<div><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}><div><div style={{...T,fontSize:22,fontWeight:800}}>Pipeline</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{ac.length} active · SAR {pv.toLocaleString()}</div></div><button onClick={()=>sM({deal:null})} style={BP}><Plus size={14} style={{marginRight:6}}/>New Deal</button></div><Kanban deals={deals} onOpen={d=>sM({deal:d})}/><div style={{...M,fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",marginBottom:10}}>ALL DEALS ({deals.length})</div><div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Client","Sector","Stage","Value","Score"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{deals.slice(0,60).map(d=><tr key={d.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sM({deal:d})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{d.client_name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{d.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:`${SC[d.stage]||"#999"}12`,color:SC[d.stage]||"#999"}}>{d.stage}</span></td><td style={{padding:"10px 14px",...M,color:"var(--sub)"}}>{d.expected_value>0?`SAR ${Number(d.expected_value).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,color:d.deal_score>=70?"#00D49C":d.deal_score>=40?"#FFB800":"var(--muted)"}}>{d.deal_score||"—"}</td></tr>)}</tbody></table></div></div>);
     case"dashboard":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Dashboard</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={deals.length} l="TOTAL DEALS" s={`${ac.length} active`}/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE" c="#00879F"/><KPI v={`${deals.length?Math.round(wo.length/deals.length*100):0}%`} l="WIN RATE" c="#00D49C"/><KPI v={ac.filter(d=>d.deal_score>=70).length} l="HIGH SCORE" c="#D0F94A"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY STAGE</div>{STAGES.map(s=>{const c=ac.filter(d=>d.stage===s).length;const p=ac.length?Math.round(c/ac.length*100):0;return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:SC[s],width:80,flexShrink:0}}>{s}</span><div style={{flex:1,height:6,background:"var(--panel2)",borderRadius:3,overflow:"hidden"}}><div style={{width:`${p}%`,height:"100%",background:SC[s],borderRadius:3}}/></div><span style={{...M,fontSize:10,color:"var(--muted)",width:24,textAlign:"right"}}>{c}</span></div>);})}</div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY SECTOR</div>{SECTORS.map(s=>{const c=ac.filter(d=>d.sector===s).length;const v=ac.filter(d=>d.sector===s).reduce((x,d)=>x+(d.expected_value||0),0);return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:XC[s],width:90,flexShrink:0}}>{s}</span><div style={{flex:1,fontSize:12,color:"var(--sub)"}}>{c}</div><span style={{...M,fontSize:10,color:"var(--muted)"}}>SAR {(v/1e6).toFixed(1)}M</span></div>);})}</div></div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>STALLED</div>{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5).map(d=><div key={d.id} onClick={()=>sM({deal:d})} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}}><span style={{fontWeight:600,fontSize:13}}>{d.client_name}</span><span style={{...M,fontSize:10,color:"#FF4B4B"}}>{Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)}d</span></div>)}{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).length===0&&<div style={{fontSize:13,color:"var(--muted)",textAlign:"center",padding:16}}>All deals active</div>}</div></div>);
-    case"agents":return<AgentsTab token={tk} deals={deals} leads={leads} assets={assets} debriefs={debriefs} onRefresh={ld}/>;
-    case"meetings":return<Meetings deals={deals} profile={profile} token={tk} elKey={elKey}/>;
+    case"agents":return<AgentsTab token={tk} deals={deals} leads={leads} assets={assets} debriefs={debriefs} onRefresh={ld} claudeKey={claudeKey}/>;
+    case"meetings":return<Meetings deals={deals} profile={profile} token={tk} elKey={elKey} claudeKey={claudeKey}/>;
     case"marketing":return<Marketing token={tk}/>;
     case"admin":return<Admin token={tk}/>;
     case"framework":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>The Framework</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Sovereign AI engagement principles and sector beliefs</div></div><div style={{...CS,padding:20}}><div style={{borderLeft:"3px solid #00D49C",padding:"14px 20px",background:"rgba(0,212,156,0.012)",borderRadius:"0 10px 10px 0",marginBottom:14}}><div style={{...M,fontSize:9,letterSpacing:"0.15em",color:"#00D49C",marginBottom:6}}>MASTER THREAD</div><div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7}}>Every sector has the same execution gap between sovereign ambition and operational reality. HUMAIN closes that gap. Not as a vendor. Not as a consultant. As the sovereign intelligence partner that stays, builds, and compounds.</div></div>{SECTORS.map(s=><div key={s} style={{padding:"12px 0",borderBottom:"1px solid var(--border)"}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:XC[s],marginBottom:4}}>{s.toUpperCase()}</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>Sector belief statement and engagement principles for {s}. Full content available in production COMPASS.</div></div>)}</div></div>);
