@@ -1,291 +1,145 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Home, Target, LayoutDashboard, Sparkles, Calendar, TrendingUp, Layers, Network, Settings, Database, LogOut, Sun, Moon, Search, Send, Plus, Eye, EyeOff, Briefcase, Users, Shield, Clock, MessageSquare, X, ChevronDown, FileText, RefreshCw, Edit3, Trash2, Save, ArrowRight, BarChart3, Zap, Bell, Filter } from "lucide-react";
+import { Home, Target, LayoutDashboard, Sparkles, Calendar, TrendingUp, Layers, Network, Settings, Database, LogOut, Sun, Moon, Search, Send, Plus, Eye, EyeOff, MessageSquare, X, FileText, Trash2, Save, Bell, Shield, Users, BarChart3, Megaphone, UserPlus, Globe, Zap, RefreshCw, Clock } from "lucide-react";
 
-const SUPA_URL = "https://nujczhqxcxuppatnjbon.supabase.co";
-const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51amN6aHF4Y3h1cHBhdG5qYm9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MjIyMjAsImV4cCI6MjA4OTE5ODIyMH0.WDy1yI89XDk7g-jnPfrEmewvtayHi87lROeZlAZpZ8U";
-const STAGES = ["Recognition", "Proof", "Integration", "Dependency", "Expansion"];
-const SECTORS = ["Government", "Oil & Gas", "Healthcare", "Private Sector", "Sport"];
-const STAGE_COLORS = { Recognition: "#8A9BAA", Proof: "#FFB800", Integration: "#00879F", Dependency: "#00D49C", Expansion: "#6B8C00" };
-const SECTOR_COLORS = { Government: "#00879F", "Oil & Gas": "#FFB800", Healthcare: "#00D49C", "Private Sector": "#D0F94A", Sport: "#FF6B6B" };
-
-async function supa(path, token, opts = {}) {
-  const h = { apikey: SUPA_KEY, "Content-Type": "application/json", Authorization: `Bearer ${token || SUPA_KEY}`, Prefer: "return=representation", ...opts.headers };
-  const r = await fetch(`${SUPA_URL}${path}`, { ...opts, headers: h });
-  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || e.msg || r.statusText); }
-  const text = await r.text(); return text ? JSON.parse(text) : null;
-}
-async function supaAuth(email, password) {
-  const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: SUPA_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-  const d = await r.json(); if (!r.ok) throw new Error(d.error_description || d.msg || "Auth failed"); return d;
-}
-
-const TABS = [
-  { id: "home", label: "Home", icon: Home }, { id: "crm", label: "CRM", icon: Target },
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard }, { id: "agents", label: "Agents", icon: Sparkles },
-  { id: "meetings", label: "Meetings", icon: Calendar }, { id: "marketing", label: "Marketing", icon: TrendingUp },
-  { id: "framework", label: "Framework", icon: Layers }, { id: "engage", label: "Engage OS", icon: Network },
-  { id: "admin", label: "Admin", icon: Settings, adminOnly: true }, { id: "setup", label: "DB Setup", icon: Database, adminOnly: true },
+const SU = "https://nujczhqxcxuppatnjbon.supabase.co";
+const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51amN6aHF4Y3h1cHBhdG5qYm9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MjIyMjAsImV4cCI6MjA4OTE5ODIyMH0.WDy1yI89XDk7g-jnPfrEmewvtayHi87lROeZlAZpZ8U";
+const STAGES=["Recognition","Proof","Integration","Dependency","Expansion"];
+const SECTORS=["Government","Oil & Gas","Healthcare","Private Sector","Sport"];
+const SC={Recognition:"#8A9BAA",Proof:"#FFB800",Integration:"#00879F",Dependency:"#00D49C",Expansion:"#6B8C00"};
+const XC={Government:"#00879F","Oil & Gas":"#FFB800",Healthcare:"#00D49C","Private Sector":"#D0F94A",Sport:"#FF6B6B"};
+const AGENTS=[
+  {key:"pipeline_guardian",name:"Pipeline Guardian",desc:"Monitors deal health, flags stalled opportunities",color:"#FF4B4B",type:"hourly",icon:Shield},
+  {key:"brief_architect",name:"Brief Architect",desc:"Auto-generates meeting briefs from deal context",color:"#00879F",type:"hourly",icon:FileText},
+  {key:"followthrough",name:"Follow-through",desc:"Tracks committed next steps, alerts on overdue",color:"#FFB800",type:"hourly",icon:Clock},
+  {key:"deal_scorer",name:"Deal Scorer",desc:"Scores deals based on observable signals",color:"#00D49C",type:"hourly",icon:Target},
+  {key:"team_coach",name:"Team Coach",desc:"Analyzes team performance patterns",color:"#A0C020",type:"hourly",icon:Users},
+  {key:"debrief_analyst",name:"Debrief Analyst",desc:"Extracts insights from post-meeting debriefs",color:"#00879F",type:"event",icon:RefreshCw},
+  {key:"sector_radar",name:"Sector Radar",desc:"Tracks sector news and competitive movements",color:"#D0F94A",type:"event",icon:Globe},
+  {key:"lead_nurture",name:"Lead Nurture",desc:"Monitors lead engagement, suggests actions",color:"#00D49C",type:"hourly",icon:UserPlus},
+  {key:"content_gap",name:"Content Gap",desc:"Identifies missing content for pipeline stages",color:"#D0F94A",type:"hourly",icon:BarChart3},
+  {key:"campaign_roi",name:"Campaign ROI",desc:"Calculates campaign effectiveness and ROI",color:"#FFB800",type:"event",icon:TrendingUp},
+  {key:"winloss_intel",name:"Win/Loss Intel",desc:"Analyzes patterns in won and lost deals",color:"#D0F94A",type:"event",icon:Zap},
+  {key:"belief_evolution",name:"Belief Evolution",desc:"Tracks how sector beliefs change over time",color:"#00879F",type:"event",icon:RefreshCw},
 ];
 
-const mono = { fontFamily: "'DM Mono', monospace" };
-const ttl = { fontFamily: "'Optician Sans', 'DM Sans', sans-serif" };
-const cardS = { background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" };
-const btnP = { padding: "8px 16px", background: "#00879F", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center" };
-const btnG = { padding: "8px 16px", background: "transparent", color: "var(--sub)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, cursor: "pointer" };
-const inp = { width: "100%", padding: "9px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, outline: "none", background: "var(--panel2)", color: "var(--text)", boxSizing: "border-box" };
-const lbl = { ...mono, fontSize: 10, letterSpacing: "0.1em", color: "var(--muted)", display: "block", marginBottom: 5 };
+async function q(p,t,o={}){const h={apikey:SK,"Content-Type":"application/json",Authorization:`Bearer ${t||SK}`,Prefer:"return=representation",...o.headers};const r=await fetch(`${SU}${p}`,{...o,headers:h});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||r.statusText);}const x=await r.text();return x?JSON.parse(x):null;}
+async function auth(e,p){const r=await fetch(`${SU}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:SK,"Content-Type":"application/json"},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok)throw new Error(d.error_description||"Auth failed");return d;}
 
-function AuthScreen({ onLogin }) {
-  const [email, setEmail] = useState(""); const [pwd, setPwd] = useState(""); const [show, setShow] = useState(false);
-  const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
-  const go = async () => { if (!email||!pwd){setErr("Enter email and password.");return;} setBusy(true);setErr(""); try{onLogin(await supaAuth(email,pwd));}catch(x){setErr(x.message);}finally{setBusy(false);} };
-  return (
-    <div style={{ position:"fixed",inset:0,background:"#0D1B1E",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif" }}>
-      <div style={{ width:380,background:"#fff",borderRadius:18,overflow:"hidden" }}>
-        <div style={{ height:3,background:"linear-gradient(90deg,#00879F,#00D49C,#D0F94A)" }}/>
-        <div style={{ padding:"40px 36px 36px" }}>
-          <div style={{ ...ttl,fontSize:22,fontWeight:800,marginBottom:4 }}>COMPASS</div>
-          <div style={{ ...mono,fontSize:10,color:"#999",letterSpacing:"0.15em",marginBottom:28 }}>STAGING ENVIRONMENT</div>
-          <div style={{ marginBottom:14 }}><label style={{...lbl,color:"#999"}}>EMAIL</label><input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="you@humain.com" style={{...inp,background:"#fff",border:"1px solid #e8e8e8"}}/></div>
-          <div style={{ marginBottom:20 }}><label style={{...lbl,color:"#999"}}>PASSWORD</label><div style={{position:"relative"}}><input type={show?"text":"password"} value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} style={{...inp,background:"#fff",border:"1px solid #e8e8e8",paddingRight:40}}/><button onClick={()=>setShow(!show)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#999"}}>{show?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></div>
-          {err && <div style={{color:"#FF4B4B",fontSize:13,marginBottom:12,padding:"8px 12px",background:"rgba(255,75,75,0.06)",borderRadius:8}}>{err}</div>}
-          <button onClick={go} disabled={busy} style={{width:"100%",padding:"12px",background:"#0D1B1E",color:"#fff",border:"none",borderRadius:10,fontSize:14,fontWeight:600,cursor:busy?"wait":"pointer",opacity:busy?0.7:1}}>{busy?"Signing in...":"Sign In"}</button>
-        </div>
+const TABS=[{id:"home",label:"Home",icon:Home},{id:"crm",label:"CRM",icon:Target},{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"agents",label:"Agents",icon:Sparkles},{id:"meetings",label:"Meetings",icon:Calendar},{id:"marketing",label:"Marketing",icon:TrendingUp},{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network},{id:"admin",label:"Admin",icon:Settings,ao:true},{id:"setup",label:"DB Setup",icon:Database,ao:true}];
+const M={fontFamily:"'DM Mono',monospace"};
+const T={fontFamily:"'Optician Sans','DM Sans',sans-serif"};
+const CS={background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:14,overflow:"hidden"};
+const BP={padding:"8px 16px",background:"#00879F",color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",display:"inline-flex",alignItems:"center"};
+const BG={padding:"8px 16px",background:"transparent",color:"var(--sub)",border:"1px solid var(--border)",borderRadius:8,fontSize:13,cursor:"pointer"};
+const IP={width:"100%",padding:"9px 12px",border:"1px solid var(--border)",borderRadius:8,fontSize:13,outline:"none",background:"var(--panel2)",color:"var(--text)",boxSizing:"border-box"};
+const LB={...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",display:"block",marginBottom:5};
+
+function Auth({onLogin}){const[e,sE]=useState("");const[p,sP]=useState("");const[sh,sSh]=useState(false);const[er,sEr]=useState("");const[b,sB]=useState(false);
+const go=async()=>{if(!e||!p){sEr("Enter email and password.");return;}sB(true);sEr("");try{onLogin(await auth(e,p));}catch(x){sEr(x.message);}finally{sB(false);}};
+return(<div style={{position:"fixed",inset:0,background:"#0D1B1E",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}><div style={{width:380,background:"#fff",borderRadius:18,overflow:"hidden"}}><div style={{height:3,background:"linear-gradient(90deg,#00879F,#00D49C,#D0F94A)"}}/><div style={{padding:"40px 36px 36px"}}><div style={{...T,fontSize:22,fontWeight:800,marginBottom:4}}>COMPASS</div><div style={{...M,fontSize:10,color:"#999",letterSpacing:"0.15em",marginBottom:28}}>STAGING ENVIRONMENT</div><div style={{marginBottom:14}}><label style={{...LB,color:"#999"}}>EMAIL</label><input value={e} onChange={x=>sE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} placeholder="you@humain.com" style={{...IP,background:"#fff",border:"1px solid #e8e8e8"}}/></div><div style={{marginBottom:20}}><label style={{...LB,color:"#999"}}>PASSWORD</label><div style={{position:"relative"}}><input type={sh?"text":"password"} value={p} onChange={x=>sP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} style={{...IP,background:"#fff",border:"1px solid #e8e8e8",paddingRight:40}}/><button onClick={()=>sSh(!sh)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#999"}}>{sh?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></div>{er&&<div style={{color:"#FF4B4B",fontSize:13,marginBottom:12,padding:"8px 12px",background:"rgba(255,75,75,0.06)",borderRadius:8}}>{er}</div>}<button onClick={go} disabled={b} style={{width:"100%",padding:"12px",background:"#0D1B1E",color:"#fff",border:"none",borderRadius:10,fontSize:14,fontWeight:600,cursor:b?"wait":"pointer",opacity:b?0.7:1}}>{b?"Signing in...":"Sign In"}</button></div></div></div>);}
+
+function DealModal({deal,onClose,onSave,onDel,token}){const nw=!deal?.id;const[f,sF]=useState({client_name:deal?.client_name||"",sector:deal?.sector||"",stage:deal?.stage||"Recognition",status:deal?.status||"Active",expected_value:deal?.expected_value||0,contact_name:deal?.contact_name||"",next_step:deal?.next_step||"",notes:deal?.notes||"",probability:deal?.probability||0});const[sv,sSv]=useState(false);const[ev,sEv]=useState([]);const s=(k,v)=>sF(p=>({...p,[k]:v}));
+useEffect(()=>{if(deal?.id&&token)q(`/rest/v1/deal_events?deal_id=eq.${deal.id}&select=*&order=created_at.desc&limit=15`,token).then(sEv).catch(()=>{});},[deal?.id,token]);
+const sv2=async()=>{if(!f.client_name.trim())return;sSv(true);try{const pl={...f,expected_value:parseFloat(f.expected_value)||0,probability:parseInt(f.probability)||0,weighted_value:(parseFloat(f.expected_value)||0)*((parseInt(f.probability)||0)/100),updated_at:new Date().toISOString()};if(nw)await q("/rest/v1/deals",token,{method:"POST",body:JSON.stringify(pl)});else await q(`/rest/v1/deals?id=eq.${deal.id}`,token,{method:"PATCH",body:JSON.stringify(pl)});onSave();}catch(x){alert(x.message);}finally{sSv(false);}};
+return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={onClose}><div style={{width:560,maxHeight:"85vh",background:"var(--panel)",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}><div style={{padding:"18px 24px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{...T,fontSize:18,fontWeight:700}}>{nw?"New Deal":deal.client_name}</div><div style={{display:"flex",gap:8}}>{!nw&&<button onClick={()=>{if(confirm("Delete?"))onDel(deal.id);}} style={{...BG,padding:"6px 10px",color:"#FF4B4B"}}><Trash2 size={14}/></button>}<button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)"}}><X size={18}/></button></div></div>
+<div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
+<div><label style={LB}>CLIENT</label><input value={f.client_name} onChange={e=>s("client_name",e.target.value)} style={IP}/></div>
+<div><label style={LB}>SECTOR</label><select value={f.sector} onChange={e=>s("sector",e.target.value)} style={IP}><option value="">Select</option>{SECTORS.map(x=><option key={x}>{x}</option>)}</select></div>
+<div><label style={LB}>STAGE</label><select value={f.stage} onChange={e=>s("stage",e.target.value)} style={IP}>{STAGES.map(x=><option key={x}>{x}</option>)}</select></div>
+<div><label style={LB}>STATUS</label><select value={f.status} onChange={e=>s("status",e.target.value)} style={IP}><option>Active</option><option>Won</option><option>Lost</option><option>Stalled</option></select></div>
+<div><label style={LB}>VALUE (SAR)</label><input type="number" value={f.expected_value} onChange={e=>s("expected_value",e.target.value)} style={IP}/></div>
+<div><label style={LB}>PROBABILITY %</label><input type="number" value={f.probability} onChange={e=>s("probability",e.target.value)} style={IP} min={0} max={100}/></div>
+<div style={{gridColumn:"1/-1"}}><label style={LB}>CONTACT</label><input value={f.contact_name} onChange={e=>s("contact_name",e.target.value)} style={IP}/></div>
+<div style={{gridColumn:"1/-1"}}><label style={LB}>NEXT STEP</label><input value={f.next_step} onChange={e=>s("next_step",e.target.value)} style={IP}/></div>
+<div style={{gridColumn:"1/-1"}}><label style={LB}>NOTES</label><textarea value={f.notes} onChange={e=>s("notes",e.target.value)} rows={3} style={{...IP,resize:"vertical"}}/></div>
+</div>{ev.length>0&&<div><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:8}}>ACTIVITY</div>{ev.map((e,i)=><div key={i} style={{padding:"6px 0",borderBottom:"1px solid var(--border)",fontSize:12,color:"var(--sub)",display:"flex",gap:10}}><span style={{...M,fontSize:10,color:"var(--muted)",width:65,flexShrink:0}}>{new Date(e.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</span><span>{e.description||e.event_type}</span></div>)}</div>}</div>
+<div style={{padding:"14px 24px",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",gap:10}}><button onClick={onClose} style={BG}>Cancel</button><button onClick={sv2} disabled={sv} style={{...BP,opacity:sv?0.6:1}}><Save size={14} style={{marginRight:6}}/>{sv?"Saving...":nw?"Create":"Save"}</button></div></div></div>);}
+
+function Chat({deals,profile}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);
+useEffect(()=>{end.current?.scrollIntoView({behavior:"smooth"});},[ms]);
+const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);sMs(p=>[...p,{role:"user",content:t}]);const a=deals.filter(d=>d.status==="Active");const sys=`You are COMPASS AI for HUMAIN CRM. User: ${profile?.full_name}. ${a.length} active deals, SAR ${a.reduce((s,d)=>s+(d.expected_value||0),0).toLocaleString()} pipeline. Top: ${a.slice(0,5).map(d=>d.client_name+" ("+d.stage+")").join(", ")}. Be concise, strategic.`;
+try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[...ms.slice(-10),{role:"user",content:t}]})});const d=await r.json();sMs(p=>[...p,{role:"assistant",content:d.content?.map(c=>c.text||"").join("")||"No response"}]);}catch(x){sMs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{sB(false);}};
+return(<div style={CS}><div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8}}><div style={{width:26,height:26,borderRadius:7,background:"rgba(0,135,159,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#00879F"}}><MessageSquare size={13}/></div><span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)"}}>COMPASS AI</span></div>
+<div style={{height:280,overflowY:"auto",padding:14}}>{ms.length===0&&<div style={{textAlign:"center",paddingTop:50,color:"var(--muted)",fontSize:13}}>Ask about deals, pipeline, or strategy</div>}{ms.map((m,i)=><div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"80%",padding:"9px 13px",borderRadius:11,fontSize:13,lineHeight:1.6,background:m.role==="user"?"#0D1B1E":"rgba(0,135,159,0.06)",color:m.role==="user"?"#fff":"var(--text)",border:m.role==="assistant"?"1px solid rgba(0,135,159,0.1)":"none",whiteSpace:"pre-wrap"}}>{m.content}</div></div>)}{b&&<div style={{...M,color:"var(--muted)",fontSize:11}}>Thinking...</div>}<div ref={end}/></div>
+<div style={{padding:"10px 12px",borderTop:"1px solid var(--border)",display:"flex",gap:8}}><input value={inp} onChange={e=>sI(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Ask COMPASS AI..." style={{...IP,flex:1}}/><button onClick={go} disabled={b||!inp.trim()} style={{...BP,padding:"9px 14px",opacity:b||!inp.trim()?0.4:1}}><Send size={14}/></button></div></div>);}
+
+function Kanban({deals,onOpen}){const g=STAGES.reduce((a,s)=>{a[s]=deals.filter(d=>d.stage===s&&d.status==="Active");return a;},{});
+return(<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,border:"1px solid var(--border)",borderRadius:16,overflow:"hidden",marginBottom:24}}>{STAGES.map((s,i)=><div key={s} style={{borderRight:i<4?"1px solid var(--border)":"none",minHeight:180}}><div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{...M,fontSize:9,letterSpacing:"0.08em",color:SC[s],fontWeight:600}}>{s.toUpperCase()}</span><span style={{...M,fontSize:9,color:"var(--muted)",background:"var(--panel2)",padding:"2px 6px",borderRadius:4}}>{g[s].length}</span></div><div style={{padding:6}}>{g[s].map(d=><div key={d.id} onClick={()=>onOpen(d)} style={{background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:9,padding:"9px 10px",marginBottom:5,cursor:"pointer"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,135,159,0.3)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";}}><div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{d.client_name}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>{d.sector||"—"}</div>{d.expected_value>0&&<div style={{...M,fontSize:9,color:"#00879F",marginTop:3}}>SAR {Number(d.expected_value).toLocaleString()}</div>}</div>)}</div></div>)}</div>);}
+
+const KPI=({v,l,c,s})=>(<div style={{...CS,padding:"18px 20px"}}><div style={{...T,fontSize:24,fontWeight:800,color:c||"var(--text)"}}>{v}</div><div style={{...M,fontSize:9,letterSpacing:"0.12em",color:"var(--muted)",marginTop:4}}>{l}</div>{s&&<div style={{...M,fontSize:10,color:"var(--sub)",marginTop:6}}>{s}</div>}</div>);
+
+function Marketing({token}){const[vw,sVw]=useState("campaigns");const[camps,sCamps]=useState([]);const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);
+useEffect(()=>{if(!token)return;q("/rest/v1/campaigns?select=*&order=created_at.desc",token).then(sCamps).catch(()=>{});q("/rest/v1/leads?select=*&order=created_at.desc",token).then(sLeads).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",token).then(sAssets).catch(()=>{});},[token]);
+const tabs=[{id:"campaigns",label:`Campaigns (${camps.length})`,icon:Megaphone},{id:"leads",label:`Leads (${leads.length})`,icon:UserPlus},{id:"content",label:`Content (${assets.length})`,icon:FileText}];
+return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Marketing</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Campaigns, leads, and content assets</div></div>
+<div style={{display:"flex",gap:6,marginBottom:20}}>{tabs.map(t=>{const I=t.icon;return(<button key={t.id} onClick={()=>sVw(t.id)} style={{...M,fontSize:11,padding:"7px 14px",borderRadius:8,border:"1px solid var(--border)",background:vw===t.id?"rgba(0,135,159,0.06)":"transparent",color:vw===t.id?"#00879F":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><I size={13}/>{t.label}</button>);})}</div>
+{vw==="campaigns"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Type","Sector","Status","Budget","Dates"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{camps.map(c=><tr key={c.id} style={{borderBottom:"1px solid var(--border)"}}><td style={{padding:"10px 14px",fontWeight:600}}>{c.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{c.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:c.status==="Active"?"rgba(0,212,156,0.06)":c.status==="Planned"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:c.status==="Active"?"#00D49C":c.status==="Planned"?"#FFB800":"#8A9BAA"}}>{c.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.budget_sar?`SAR ${Number(c.budget_sar).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{c.start_date||"—"}</td></tr>)}{camps.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No campaigns yet</td></tr>}</tbody></table></div>}
+{vw==="leads"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Organization","Sector","Source","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{leads.map(l=><tr key={l.id} style={{borderBottom:"1px solid var(--border)"}}><td style={{padding:"10px 14px",fontWeight:600}}>{l.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{l.organization||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.sector||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.source_type||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:l.status==="Hot"?"rgba(255,75,75,0.06)":l.status==="Warm"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:l.status==="Hot"?"#FF4B4B":l.status==="Warm"?"#FFB800":"#8A9BAA"}}>{l.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{l.created_at?new Date(l.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{leads.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No leads yet</td></tr>}</tbody></table></div>}
+{vw==="content"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Title","Type","Sector","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{assets.map(a=><tr key={a.id} style={{borderBottom:"1px solid var(--border)"}}><td style={{padding:"10px 14px",fontWeight:600}}>{a.title||a.name||"—"}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{a.asset_type||a.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{a.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:"rgba(0,135,159,0.06)",color:"#00879F"}}>{a.status||"Draft"}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{a.created_at?new Date(a.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{assets.length===0&&<tr><td colSpan={5} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No assets yet</td></tr>}</tbody></table></div>}
+</div>);}
+
+function AgentsTab({token,deals}){const[queue,sQueue]=useState([]);
+useEffect(()=>{if(token)q("/rest/v1/agent_queue?select=*&order=created_at.desc&limit=30",token).then(sQueue).catch(()=>{});},[token]);
+return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Agents</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>12 sovereign intelligence agents</div></div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:28}}>{AGENTS.map(a=>{const I=a.icon;return(<div key={a.key} style={{...CS,padding:"16px 18px",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,135,159,0.2)";e.currentTarget.style.transform="translateY(-1px)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.transform="none";}}>
+<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><div style={{width:30,height:30,borderRadius:8,background:`${a.color}12`,display:"flex",alignItems:"center",justifyContent:"center",color:a.color}}><I size={15}/></div><div><div style={{fontSize:13,fontWeight:600}}>{a.name}</div><span style={{...M,fontSize:9,color:a.type==="hourly"?"#00D49C":"#FFB800"}}>{a.type.toUpperCase()}</span></div></div>
+<div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{a.desc}</div>
+</div>);})}</div>
+{queue.length>0&&<><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>RECENT QUEUE ({queue.length})</div><div style={CS}>{queue.slice(0,10).map((item,i)=><div key={i} style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><span style={{fontSize:13,fontWeight:600}}>{item.agent_key}</span><span style={{...M,fontSize:10,color:"var(--muted)",marginLeft:8}}>{item.status}</span></div><span style={{...M,fontSize:10,color:"var(--muted)"}}>{item.created_at?new Date(item.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</span></div>)}</div></>}
+</div>);}
+
+function Meetings({deals,profile}){const[sel,sSel]=useState("");const[brief,sBrief]=useState("");const[b,sB]=useState(false);const a=deals.filter(d=>d.status==="Active");
+const gen=async()=>{const deal=a.find(d=>d.id===sel);if(!deal)return;sB(true);sBrief("");try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:`Generate a meeting brief for:\nClient: ${deal.client_name}\nSector: ${deal.sector}\nStage: ${deal.stage}\nValue: SAR ${(deal.expected_value||0).toLocaleString()}\nContact: ${deal.contact_name||"Unknown"}\nNext Step: ${deal.next_step||"None"}\nNotes: ${deal.notes||"None"}\n\nProvide: 1) Client Context 2) Belief Statement 3) Conversation Flow (3-4 steps) 4) Key Questions (3) 5) Next Step. Saudi/HUMAIN specific.`}]})});const d=await r.json();sBrief(d.content?.map(c=>c.text||"").join("")||"No response");}catch(x){sBrief("Error: "+x.message);}finally{sB(false);}};
+return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Meetings</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>AI brief generation and belief debrief</div></div>
+<div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>GENERATE BRIEF</div><div style={{display:"flex",gap:10,marginBottom:16}}><select value={sel} onChange={e=>sSel(e.target.value)} style={{...IP,flex:1}}><option value="">Select a deal...</option>{a.map(d=><option key={d.id} value={d.id}>{d.client_name} ({d.sector}, {d.stage})</option>)}</select><button onClick={gen} disabled={!sel||b} style={{...BP,opacity:!sel||b?0.5:1,whiteSpace:"nowrap"}}><FileText size={14} style={{marginRight:6}}/>{b?"Generating...":"Generate"}</button></div>
+{brief&&<div style={{background:"var(--panel2)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 20px",fontSize:13,lineHeight:1.7,color:"var(--sub)",whiteSpace:"pre-wrap",maxHeight:500,overflowY:"auto"}}>{brief}</div>}</div></div>);}
+
+function Admin({token}){const[users,sU]=useState([]);const[reqs,sR]=useState([]);
+useEffect(()=>{if(!token)return;q("/rest/v1/profiles?select=*&order=full_name.asc",token).then(sU).catch(()=>{});q("/rest/v1/access_requests?select=*&order=requested_at.desc",token).then(sR).catch(()=>{});},[token]);
+return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Admin</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{users.length} users · {reqs.filter(r=>r.status==="Pending").length} pending</div></div>
+<div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>TEAM</div>
+<div style={{...CS,marginBottom:24}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Email","Role","Team","Last Seen"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{users.map(u=><tr key={u.id} style={{borderBottom:"1px solid var(--border)"}}><td style={{padding:"10px 14px",fontWeight:600}}>{u.full_name||"—"}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{u.email}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:u.role==="admin"?"rgba(208,249,74,0.1)":"rgba(0,135,159,0.06)",color:u.role==="admin"?"#6B8C00":"#00879F"}}>{u.role}</span></td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{u.team||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--muted)"}}>{u.last_seen?new Date(u.last_seen).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"Never"}</td></tr>)}</tbody></table></div>
+{reqs.length>0&&<><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>REQUESTS</div><div style={CS}>{reqs.map(r=><div key={r.id} style={{padding:"14px 18px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:600,fontSize:13}}>{r.full_name}</div><div style={{fontSize:12,color:"var(--sub)"}}>{r.email}</div></div><span style={{...M,fontSize:10,padding:"3px 10px",borderRadius:4,background:r.status==="Pending"?"rgba(255,184,0,0.08)":"rgba(0,212,156,0.08)",color:r.status==="Pending"?"#FFB800":"#00D49C"}}>{r.status}</span></div>)}</div></>}
+</div>);}
+
+const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...T,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...M,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — COMING SOON</div></div>;
+
+export default function App(){
+  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[notif,sN]=useState(0);
+  const tk=session?.access_token;const isA=profile?.role==="admin";
+  const ld=useCallback(()=>{if(tk)q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);},[tk]);
+  useEffect(()=>{if(!tk)return;const uid=session.user?.id;q(`/rest/v1/profiles?id=eq.${uid}&select=*`,tk).then(d=>{if(d?.[0])sP(d[0]);}).catch(console.error);ld();},[tk]);
+  // Poll notifications
+  useEffect(()=>{if(!tk||!isA)return;const poll=()=>q("/rest/v1/access_requests?status=eq.Pending&select=id",tk).then(d=>sN(d?.length||0)).catch(()=>{});poll();const iv=setInterval(poll,60000);return()=>clearInterval(iv);},[tk,isA]);
+
+  const th=dark?{"--bg":"#0D1B1E","--panel":"#111F22","--panel2":"#162629","--card-bg":"#162629","--text":"#E8F0F0","--sub":"#8AA0A6","--muted":"#5A7278","--dim":"#4A6268","--border":"rgba(255,255,255,0.08)"}:{"--bg":"#EEF3F0","--panel":"#FFFFFF","--panel2":"#F4F8F5","--card-bg":"#FFFFFF","--text":"#0a0a0a","--sub":"#555","--muted":"#8A9BAA","--dim":"#6B8088","--border":"rgba(0,0,0,0.08)"};
+  if(!session)return<Auth onLogin={sS}/>;
+  const nm=profile?.full_name||session.user?.email?.split("@")[0]||"User";const hr=new Date().getHours();const gr=hr<12?"Good Morning":hr<17?"Good Afternoon":"Good Evening";const ac=deals.filter(d=>d.status==="Active");const pv=ac.reduce((s,d)=>s+(d.expected_value||0),0);const wo=deals.filter(d=>d.status==="Won");const sr=search?deals.filter(d=>(d.client_name||"").toLowerCase().includes(search.toLowerCase())).slice(0,8):[];
+
+  const renderTab=()=>{switch(tab){
+    case"home":return(<div><div style={{marginBottom:28}}><div style={{...T,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{gr}, {nm.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={ac.length} l="ACTIVE DEALS" c="#00879F"/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE VALUE" c="#00D49C"/><KPI v={wo.length} l="WON DEALS" c="#D0F94A"/><KPI v={SECTORS.filter(s=>ac.some(d=>d.sector===s)).length} l="SECTORS ACTIVE" c="#00879F"/></div><Chat deals={deals} profile={profile}/></div>);
+    case"crm":return(<div><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}><div><div style={{...T,fontSize:22,fontWeight:800}}>Pipeline</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{ac.length} active · SAR {pv.toLocaleString()}</div></div><button onClick={()=>sM({deal:null})} style={BP}><Plus size={14} style={{marginRight:6}}/>New Deal</button></div><Kanban deals={deals} onOpen={d=>sM({deal:d})}/><div style={{...M,fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",marginBottom:10}}>ALL DEALS ({deals.length})</div><div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Client","Sector","Stage","Value","Score"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{deals.slice(0,60).map(d=><tr key={d.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sM({deal:d})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{d.client_name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{d.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:`${SC[d.stage]||"#999"}12`,color:SC[d.stage]||"#999"}}>{d.stage}</span></td><td style={{padding:"10px 14px",...M,color:"var(--sub)"}}>{d.expected_value>0?`SAR ${Number(d.expected_value).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,color:d.deal_score>=70?"#00D49C":d.deal_score>=40?"#FFB800":"var(--muted)"}}>{d.deal_score||"—"}</td></tr>)}</tbody></table></div></div>);
+    case"dashboard":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Dashboard</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={deals.length} l="TOTAL DEALS" s={`${ac.length} active`}/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE" c="#00879F"/><KPI v={`${deals.length?Math.round(wo.length/deals.length*100):0}%`} l="WIN RATE" c="#00D49C"/><KPI v={ac.filter(d=>d.deal_score>=70).length} l="HIGH SCORE" c="#D0F94A"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY STAGE</div>{STAGES.map(s=>{const c=ac.filter(d=>d.stage===s).length;const p=ac.length?Math.round(c/ac.length*100):0;return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:SC[s],width:80,flexShrink:0}}>{s}</span><div style={{flex:1,height:6,background:"var(--panel2)",borderRadius:3,overflow:"hidden"}}><div style={{width:`${p}%`,height:"100%",background:SC[s],borderRadius:3}}/></div><span style={{...M,fontSize:10,color:"var(--muted)",width:24,textAlign:"right"}}>{c}</span></div>);})}</div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY SECTOR</div>{SECTORS.map(s=>{const c=ac.filter(d=>d.sector===s).length;const v=ac.filter(d=>d.sector===s).reduce((x,d)=>x+(d.expected_value||0),0);return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:XC[s],width:90,flexShrink:0}}>{s}</span><div style={{flex:1,fontSize:12,color:"var(--sub)"}}>{c}</div><span style={{...M,fontSize:10,color:"var(--muted)"}}>SAR {(v/1e6).toFixed(1)}M</span></div>);})}</div></div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>STALLED</div>{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5).map(d=><div key={d.id} onClick={()=>sM({deal:d})} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}}><span style={{fontWeight:600,fontSize:13}}>{d.client_name}</span><span style={{...M,fontSize:10,color:"#FF4B4B"}}>{Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)}d</span></div>)}{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).length===0&&<div style={{fontSize:13,color:"var(--muted)",textAlign:"center",padding:16}}>All deals active</div>}</div></div>);
+    case"agents":return<AgentsTab token={tk} deals={deals}/>;
+    case"meetings":return<Meetings deals={deals} profile={profile}/>;
+    case"marketing":return<Marketing token={tk}/>;
+    case"admin":return<Admin token={tk}/>;
+    default:return<PH label={TABS.find(t=>t.id===tab)?.label||tab} icon={TABS.find(t=>t.id===tab)?.icon||Home}/>;
+  }};
+
+  return(<div style={{...th,fontFamily:"'DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
+    <nav style={{width:sb?220:64,background:"var(--panel)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",transition:"width .3s cubic-bezier(0.16,1,0.3,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden"}}>
+      <div style={{padding:sb?"16px 16px 10px":"16px 12px 10px",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>sSb(!sb)}><div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,#00879F,#00D49C,#D0F94A)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:14,flexShrink:0}}>C</div>{sb&&<span style={{...T,fontSize:15,fontWeight:800,whiteSpace:"nowrap"}}>COMPASS</span>}</div>
+      <div style={{flex:1,padding:"6px",overflowY:"auto"}}>{TABS.filter(t=>!t.ao||isA).map(t=>{const I=t.icon;const on=tab===t.id;return(<button key={t.id} onClick={()=>sT(t.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:sb?"8px 10px":"8px 0",justifyContent:sb?"flex-start":"center",background:on?"rgba(0,135,159,0.08)":"transparent",border:"none",borderRadius:8,cursor:"pointer",marginBottom:1,color:on?"#00879F":"var(--dim)",transition:"all .15s",position:"relative"}}><I size={17} strokeWidth={on?2:1.5}/>{sb&&<span style={{fontSize:13,fontWeight:on?600:400,whiteSpace:"nowrap"}}>{t.label}</span>}{t.id==="admin"&&notif>0&&<span style={{position:"absolute",right:sb?10:4,top:4,width:16,height:16,borderRadius:8,background:"#FF4B4B",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}</button>);})}</div>
+      <div style={{padding:"10px 6px",borderTop:"1px solid var(--border)"}}><div style={{display:"flex",gap:2,marginBottom:6,justifyContent:"center"}}><button onClick={()=>sDk(false)} style={{padding:"5px 8px",borderRadius:6,border:"none",cursor:"pointer",background:!dark?"rgba(0,135,159,0.1)":"transparent",color:!dark?"#00879F":"var(--muted)"}}><Sun size={13}/></button><button onClick={()=>sDk(true)} style={{padding:"5px 8px",borderRadius:6,border:"none",cursor:"pointer",background:dark?"rgba(0,135,159,0.1)":"transparent",color:dark?"#00879F":"var(--muted)"}}><Moon size={13}/></button></div><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 4px"}}><div style={{width:28,height:28,borderRadius:8,background:"rgba(0,135,159,0.08)",border:"2px solid rgba(0,135,159,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#00879F",flexShrink:0}}>{nm[0]?.toUpperCase()}</div>{sb&&<div style={{overflow:"hidden"}}><div style={{fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{nm}</div>{isA&&<div style={{...M,fontSize:8,color:"#D0F94A",letterSpacing:"0.08em"}}>ADMIN</div>}</div>}</div><button onClick={()=>{sS(null);sP(null);sD([]);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,padding:"7px 10px",background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:11,borderRadius:6}}><LogOut size={13}/>{sb&&<span>Sign out</span>}</button></div>
+    </nav>
+    <main style={{flex:1,marginLeft:sb?220:64,transition:"margin-left .3s cubic-bezier(0.16,1,0.3,1)"}}>
+      <div style={{position:"sticky",top:0,zIndex:50,background:"var(--panel)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)"}}>
+        <div style={{position:"relative",flex:1,maxWidth:360}}><Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)"}}/><input value={search} onChange={e=>{sSr(e.target.value);sSrO(true);}} onFocus={()=>sSrO(true)} onBlur={()=>setTimeout(()=>sSrO(false),200)} placeholder="Search deals..." style={{...IP,paddingLeft:32,fontSize:12}}/>{srO&&search&&sr.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:10,marginTop:4,boxShadow:"0 8px 24px rgba(0,0,0,0.1)",zIndex:60,overflow:"hidden"}}>{sr.map(d=><div key={d.id} onMouseDown={()=>{sM({deal:d});sSr("");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid var(--border)",fontSize:13,display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:600}}>{d.client_name}</span><span style={{...M,fontSize:10,color:SC[d.stage]}}>{d.stage}</span></div>)}</div>}</div>
+        <div style={{...M,fontSize:10,color:"#FFB800",letterSpacing:"0.1em",padding:"4px 10px",background:"rgba(255,184,0,0.06)",border:"1px solid rgba(255,184,0,0.1)",borderRadius:5}}>STAGING</div>
       </div>
-    </div>
-  );
-}
-
-function DealModal({ deal, onClose, onSave, onDelete, token }) {
-  const isNew = !deal?.id;
-  const [f, setF] = useState({ client_name:deal?.client_name||"", sector:deal?.sector||"", stage:deal?.stage||"Recognition", status:deal?.status||"Active", expected_value:deal?.expected_value||0, contact_name:deal?.contact_name||"", next_step:deal?.next_step||"", notes:deal?.notes||"", probability:deal?.probability||0 });
-  const [saving, setSaving] = useState(false); const [evts, setEvts] = useState([]);
-  const set = (k,v) => setF(p=>({...p,[k]:v}));
-  useEffect(()=>{ if(deal?.id&&token) supa(`/rest/v1/deal_events?deal_id=eq.${deal.id}&select=*&order=created_at.desc&limit=15`,token).then(setEvts).catch(()=>{}); },[deal?.id,token]);
-  const save = async () => { if(!f.client_name.trim())return; setSaving(true); try{ const pl={...f,expected_value:parseFloat(f.expected_value)||0,probability:parseInt(f.probability)||0,weighted_value:(parseFloat(f.expected_value)||0)*((parseInt(f.probability)||0)/100),updated_at:new Date().toISOString()}; if(isNew){await supa("/rest/v1/deals",token,{method:"POST",body:JSON.stringify(pl)});}else{await supa(`/rest/v1/deals?id=eq.${deal.id}`,token,{method:"PATCH",body:JSON.stringify(pl)});} onSave(); }catch(x){alert(x.message);}finally{setSaving(false);} };
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={onClose}>
-      <div style={{width:560,maxHeight:"85vh",background:"var(--panel)",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"18px 24px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{...ttl,fontSize:18,fontWeight:700}}>{isNew?"New Deal":deal.client_name}</div>
-          <div style={{display:"flex",gap:8}}>{!isNew&&<button onClick={()=>{if(confirm("Delete?"))onDelete(deal.id);}} style={{...btnG,padding:"6px 10px",color:"#FF4B4B"}}><Trash2 size={14}/></button>}<button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)"}}><X size={18}/></button></div>
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
-            <div><label style={lbl}>CLIENT NAME</label><input value={f.client_name} onChange={e=>set("client_name",e.target.value)} style={inp}/></div>
-            <div><label style={lbl}>SECTOR</label><select value={f.sector} onChange={e=>set("sector",e.target.value)} style={inp}><option value="">Select</option>{SECTORS.map(s=><option key={s}>{s}</option>)}</select></div>
-            <div><label style={lbl}>STAGE</label><select value={f.stage} onChange={e=>set("stage",e.target.value)} style={inp}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-            <div><label style={lbl}>STATUS</label><select value={f.status} onChange={e=>set("status",e.target.value)} style={inp}><option>Active</option><option>Won</option><option>Lost</option><option>Stalled</option></select></div>
-            <div><label style={lbl}>VALUE (SAR)</label><input type="number" value={f.expected_value} onChange={e=>set("expected_value",e.target.value)} style={inp}/></div>
-            <div><label style={lbl}>PROBABILITY %</label><input type="number" value={f.probability} onChange={e=>set("probability",e.target.value)} style={inp} min={0} max={100}/></div>
-            <div style={{gridColumn:"1/-1"}}><label style={lbl}>CONTACT</label><input value={f.contact_name} onChange={e=>set("contact_name",e.target.value)} style={inp}/></div>
-            <div style={{gridColumn:"1/-1"}}><label style={lbl}>NEXT STEP</label><input value={f.next_step} onChange={e=>set("next_step",e.target.value)} style={inp}/></div>
-            <div style={{gridColumn:"1/-1"}}><label style={lbl}>NOTES</label><textarea value={f.notes} onChange={e=>set("notes",e.target.value)} rows={3} style={{...inp,resize:"vertical"}}/></div>
-          </div>
-          {evts.length>0&&<div style={{marginTop:8}}><div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:8}}>ACTIVITY LOG</div>{evts.map((ev,i)=><div key={i} style={{padding:"8px 0",borderBottom:"1px solid var(--border)",fontSize:12,color:"var(--sub)",display:"flex",gap:10}}><span style={{...mono,fontSize:10,color:"var(--muted)",width:70,flexShrink:0}}>{new Date(ev.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</span><span>{ev.description||ev.event_type}</span></div>)}</div>}
-        </div>
-        <div style={{padding:"14px 24px",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",gap:10}}>
-          <button onClick={onClose} style={btnG}>Cancel</button>
-          <button onClick={save} disabled={saving} style={{...btnP,opacity:saving?0.6:1}}><Save size={14} style={{marginRight:6}}/>{saving?"Saving...":isNew?"Create Deal":"Save"}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AIChat({ deals, profile }) {
-  const [msgs, setMsgs] = useState([]); const [input, setInput] = useState(""); const [busy, setBusy] = useState(false); const end = useRef(null);
-  useEffect(()=>{end.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
-  const send = async () => { if(!input.trim()||busy)return; const t=input.trim();setInput("");setBusy(true); setMsgs(p=>[...p,{role:"user",content:t}]); const a=deals.filter(d=>d.status==="Active"); const sys=`You are COMPASS AI for HUMAIN CRM. User: ${profile?.full_name}. ${a.length} active deals, SAR ${a.reduce((s,d)=>s+(d.expected_value||0),0).toLocaleString()} pipeline. Top: ${a.slice(0,5).map(d=>d.client_name+" ("+d.stage+")").join(", ")}. Be concise, strategic.`;
-    try{ const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[...msgs.slice(-10),{role:"user",content:t}]})}); const d=await r.json(); setMsgs(p=>[...p,{role:"assistant",content:d.content?.map(c=>c.text||"").join("")||"No response"}]); }catch(x){setMsgs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{setBusy(false);} };
-  return (
-    <div style={cardS}>
-      <div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8}}><div style={{width:26,height:26,borderRadius:7,background:"rgba(0,135,159,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#00879F"}}><MessageSquare size={13}/></div><span style={{...mono,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)"}}>COMPASS AI</span></div>
-      <div style={{height:280,overflowY:"auto",padding:14}}>
-        {msgs.length===0&&<div style={{textAlign:"center",paddingTop:50,color:"var(--muted)",fontSize:13}}>Ask about deals, pipeline, or strategy</div>}
-        {msgs.map((m,i)=><div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"80%",padding:"9px 13px",borderRadius:11,fontSize:13,lineHeight:1.6,background:m.role==="user"?"#0D1B1E":"rgba(0,135,159,0.06)",color:m.role==="user"?"#fff":"var(--text)",border:m.role==="assistant"?"1px solid rgba(0,135,159,0.1)":"none",whiteSpace:"pre-wrap"}}>{m.content}</div></div>)}
-        {busy&&<div style={{...mono,color:"var(--muted)",fontSize:11}}>Thinking...</div>}<div ref={end}/>
-      </div>
-      <div style={{padding:"10px 12px",borderTop:"1px solid var(--border)",display:"flex",gap:8}}><input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask COMPASS AI..." style={{...inp,flex:1}}/><button onClick={send} disabled={busy||!input.trim()} style={{...btnP,padding:"9px 14px",opacity:busy||!input.trim()?0.4:1}}><Send size={14}/></button></div>
-    </div>
-  );
-}
-
-function Kanban({ deals, onOpen }) {
-  const g = STAGES.reduce((a,s)=>{a[s]=deals.filter(d=>d.stage===s&&d.status==="Active");return a;},{});
-  return (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,border:"1px solid var(--border)",borderRadius:16,overflow:"hidden",marginBottom:24}}>
-      {STAGES.map((s,i)=><div key={s} style={{borderRight:i<4?"1px solid var(--border)":"none",minHeight:180}}>
-        <div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{...mono,fontSize:9,letterSpacing:"0.08em",color:STAGE_COLORS[s],fontWeight:600}}>{s.toUpperCase()}</span><span style={{...mono,fontSize:9,color:"var(--muted)",background:"var(--panel2)",padding:"2px 6px",borderRadius:4}}>{g[s].length}</span></div>
-        <div style={{padding:6}}>{g[s].map(d=><div key={d.id} onClick={()=>onOpen(d)} style={{background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:9,padding:"9px 10px",marginBottom:5,cursor:"pointer",transition:"all .15s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,135,159,0.3)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";}}><div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{d.client_name}</div><div style={{...mono,fontSize:9,color:"var(--muted)"}}>{d.sector||"—"}</div>{d.expected_value>0&&<div style={{...mono,fontSize:9,color:"#00879F",marginTop:3}}>SAR {Number(d.expected_value).toLocaleString()}</div>}</div>)}</div>
-      </div>)}
-    </div>
-  );
-}
-
-const KPI=({val,label,color,sub})=>(<div style={{...cardS,padding:"18px 20px"}}><div style={{...ttl,fontSize:24,fontWeight:800,color:color||"var(--text)"}}>{val}</div><div style={{...mono,fontSize:9,letterSpacing:"0.12em",color:"var(--muted)",marginTop:4}}>{label}</div>{sub&&<div style={{...mono,fontSize:10,color:"var(--sub)",marginTop:6}}>{sub}</div>}</div>);
-
-function MeetingBrief({ deals, profile }) {
-  const [sel, setSel] = useState(""); const [brief, setBrief] = useState(""); const [busy, setBusy] = useState(false);
-  const a = deals.filter(d=>d.status==="Active");
-  const gen = async () => { const deal=a.find(d=>d.id===sel); if(!deal)return; setBusy(true);setBrief("");
-    const p=`Generate a meeting preparation brief for:\nClient: ${deal.client_name}\nSector: ${deal.sector}\nStage: ${deal.stage}\nValue: SAR ${(deal.expected_value||0).toLocaleString()}\nContact: ${deal.contact_name||"Unknown"}\nNext Step: ${deal.next_step||"None"}\nNotes: ${deal.notes||"None"}\n\nProvide:\n1. Client Context (2-3 lines)\n2. Belief Statement\n3. Conversation Flow (3-4 steps)\n4. Key Questions (3)\n5. Recommended Next Step\n\nBe Saudi/HUMAIN specific. Actionable.`;
-    try{ const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:p}]})}); const d=await r.json(); setBrief(d.content?.map(c=>c.text||"").join("")||"No response"); }catch(x){setBrief("Error: "+x.message);}finally{setBusy(false);} };
-  return (<div>
-    <div style={{marginBottom:20}}><div style={{...ttl,fontSize:22,fontWeight:800}}>Meetings</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>AI-powered brief generation</div></div>
-    <div style={{...cardS,padding:20,marginBottom:20}}>
-      <div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>GENERATE MEETING BRIEF</div>
-      <div style={{display:"flex",gap:10,marginBottom:16}}>
-        <select value={sel} onChange={e=>setSel(e.target.value)} style={{...inp,flex:1}}><option value="">Select a deal...</option>{a.map(d=><option key={d.id} value={d.id}>{d.client_name} ({d.sector}, {d.stage})</option>)}</select>
-        <button onClick={gen} disabled={!sel||busy} style={{...btnP,opacity:!sel||busy?0.5:1,whiteSpace:"nowrap"}}><FileText size={14} style={{marginRight:6}}/>{busy?"Generating...":"Generate Brief"}</button>
-      </div>
-      {brief&&<div style={{background:"var(--panel2)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 20px",fontSize:13,lineHeight:1.7,color:"var(--sub)",whiteSpace:"pre-wrap",maxHeight:500,overflowY:"auto"}}>{brief}</div>}
-    </div>
+      <div style={{padding:"24px 28px 80px",maxWidth:1100}}>{renderTab()}</div>
+    </main>
+    {modal&&<DealModal deal={modal.deal} onClose={()=>sM(null)} onSave={()=>{sM(null);ld();}} onDel={async(id)=>{try{await q(`/rest/v1/deals?id=eq.${id}`,tk,{method:"DELETE"});sM(null);ld();}catch(x){alert(x.message);}}} token={tk}/>}
   </div>);
-}
-
-function AdminTab({ token }) {
-  const [users, setUsers] = useState([]); const [reqs, setReqs] = useState([]);
-  useEffect(()=>{ if(!token)return; supa("/rest/v1/profiles?select=*&order=full_name.asc",token).then(setUsers).catch(()=>{}); supa("/rest/v1/access_requests?select=*&order=requested_at.desc",token).then(setReqs).catch(()=>{}); },[token]);
-  return (<div>
-    <div style={{marginBottom:20}}><div style={{...ttl,fontSize:22,fontWeight:800}}>Admin</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{users.length} users · {reqs.filter(r=>r.status==="Pending").length} pending</div></div>
-    <div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>TEAM</div>
-    <div style={{...cardS,marginBottom:24}}>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>
-        {["Name","Email","Role","Team","Last Seen"].map(h=><th key={h} style={{...mono,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}
-      </tr></thead><tbody>{users.map(u=><tr key={u.id} style={{borderBottom:"1px solid var(--border)"}}>
-        <td style={{padding:"10px 14px",fontWeight:600}}>{u.full_name||"—"}</td>
-        <td style={{padding:"10px 14px",color:"var(--sub)"}}>{u.email}</td>
-        <td style={{padding:"10px 14px"}}><span style={{...mono,fontSize:10,padding:"3px 8px",borderRadius:4,background:u.role==="admin"?"rgba(208,249,74,0.1)":"rgba(0,135,159,0.06)",color:u.role==="admin"?"#6B8C00":"#00879F"}}>{u.role}</span></td>
-        <td style={{padding:"10px 14px",...mono,fontSize:11,color:"var(--sub)"}}>{u.team||"—"}</td>
-        <td style={{padding:"10px 14px",...mono,fontSize:11,color:"var(--muted)"}}>{u.last_seen?new Date(u.last_seen).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"Never"}</td>
-      </tr>)}</tbody></table>
-    </div>
-    {reqs.length>0&&<><div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>ACCESS REQUESTS</div><div style={cardS}>{reqs.map(r=><div key={r.id} style={{padding:"14px 18px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:600,fontSize:13}}>{r.full_name}</div><div style={{fontSize:12,color:"var(--sub)"}}>{r.email} · {r.department}</div></div><span style={{...mono,fontSize:10,padding:"3px 10px",borderRadius:4,background:r.status==="Pending"?"rgba(255,184,0,0.08)":"rgba(0,212,156,0.08)",color:r.status==="Pending"?"#FFB800":"#00D49C"}}>{r.status}</span></div>)}</div></>}
-  </div>);
-}
-
-function Placeholder({ label, icon: Icon }) {
-  return <div style={{textAlign:"center",paddingTop:80}}><Icon size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...ttl,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...mono,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — MODULE COMING SOON</div></div>;
-}
-
-export default function App() {
-  const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [deals, setDeals] = useState([]);
-  const [tab, setTab] = useState("home");
-  const [dark, setDark] = useState(false);
-  const [sidebar, setSidebar] = useState(true);
-  const [modal, setModal] = useState(null);
-  const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  const token = session?.access_token;
-  const isAdmin = profile?.role === "admin";
-  const loadDeals = useCallback(() => { if(token) supa("/rest/v1/deals?select=*&order=updated_at.desc",token).then(d=>setDeals(d||[])).catch(console.error); }, [token]);
-
-  useEffect(() => { if(!token)return; const uid=session.user?.id; supa(`/rest/v1/profiles?id=eq.${uid}&select=*`,token).then(d=>{if(d?.[0])setProfile(d[0])}).catch(console.error); loadDeals(); }, [token]);
-
-  const theme = dark ? { "--bg":"#0D1B1E","--panel":"#111F22","--panel2":"#162629","--card-bg":"#162629","--text":"#E8F0F0","--sub":"#8AA0A6","--muted":"#5A7278","--dim":"#4A6268","--border":"rgba(255,255,255,0.08)" }
-    : { "--bg":"#EEF3F0","--panel":"#FFFFFF","--panel2":"#F4F8F5","--card-bg":"#FFFFFF","--text":"#0a0a0a","--sub":"#555","--muted":"#8A9BAA","--dim":"#6B8088","--border":"rgba(0,0,0,0.08)" };
-
-  if (!session) return <AuthScreen onLogin={setSession} />;
-
-  const name = profile?.full_name || session.user?.email?.split("@")[0] || "User";
-  const hour = new Date().getHours();
-  const greet = hour<12?"Good Morning":hour<17?"Good Afternoon":"Good Evening";
-  const active = deals.filter(d=>d.status==="Active");
-  const pv = active.reduce((s,d)=>s+(d.expected_value||0),0);
-  const won = deals.filter(d=>d.status==="Won");
-  const sr = search ? deals.filter(d=>(d.client_name||"").toLowerCase().includes(search.toLowerCase())||(d.sector||"").toLowerCase().includes(search.toLowerCase())).slice(0,8) : [];
-
-  const renderTab = () => {
-    switch(tab) {
-      case "home": return (<div>
-        <div style={{marginBottom:28}}><div style={{...ttl,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{greet}, {name.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI val={active.length} label="ACTIVE DEALS" color="#00879F"/><KPI val={`SAR ${(pv/1e6).toFixed(1)}M`} label="PIPELINE VALUE" color="#00D49C"/><KPI val={won.length} label="WON DEALS" color="#D0F94A"/><KPI val={SECTORS.filter(s=>active.some(d=>d.sector===s)).length} label="SECTORS ACTIVE" color="#00879F"/></div>
-        <AIChat deals={deals} profile={profile}/>
-      </div>);
-      case "crm": return (<div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-          <div><div style={{...ttl,fontSize:22,fontWeight:800}}>Pipeline</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{active.length} active · SAR {pv.toLocaleString()}</div></div>
-          <button onClick={()=>setModal({deal:null})} style={btnP}><Plus size={14} style={{marginRight:6}}/>New Deal</button>
-        </div>
-        <Kanban deals={deals} onOpen={d=>setModal({deal:d})}/>
-        <div style={{...mono,fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",marginBottom:10}}>ALL DEALS ({deals.length})</div>
-        <div style={cardS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>
-          {["Client","Sector","Stage","Value","Score","Updated"].map(h=><th key={h} style={{...mono,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}
-        </tr></thead><tbody>{deals.slice(0,60).map(d=><tr key={d.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>setModal({deal:d})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-          <td style={{padding:"10px 14px",fontWeight:600}}>{d.client_name}</td>
-          <td style={{padding:"10px 14px",color:"var(--sub)"}}>{d.sector||"—"}</td>
-          <td style={{padding:"10px 14px"}}><span style={{...mono,fontSize:10,padding:"3px 8px",borderRadius:4,background:`${STAGE_COLORS[d.stage]||"#999"}12`,color:STAGE_COLORS[d.stage]||"#999",fontWeight:500}}>{d.stage}</span></td>
-          <td style={{padding:"10px 14px",...mono,color:"var(--sub)"}}>{d.expected_value>0?`SAR ${Number(d.expected_value).toLocaleString()}`:"—"}</td>
-          <td style={{padding:"10px 14px",...mono,color:d.deal_score>=70?"#00D49C":d.deal_score>=40?"#FFB800":"var(--muted)"}}>{d.deal_score||"—"}</td>
-          <td style={{padding:"10px 14px",...mono,fontSize:11,color:"var(--muted)"}}>{d.updated_at?new Date(d.updated_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td>
-        </tr>)}</tbody></table></div>
-      </div>);
-      case "dashboard": return (<div>
-        <div style={{marginBottom:20}}><div style={{...ttl,fontSize:22,fontWeight:800}}>Dashboard</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Pipeline health and performance</div></div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
-          <KPI val={deals.length} label="TOTAL DEALS" sub={`${active.length} active · ${won.length} won`}/>
-          <KPI val={`SAR ${(pv/1e6).toFixed(1)}M`} label="ACTIVE PIPELINE" color="#00879F" sub={`Avg: SAR ${active.length?Math.round(pv/active.length).toLocaleString():0}`}/>
-          <KPI val={`${deals.length?Math.round(won.length/deals.length*100):0}%`} label="WIN RATE" color="#00D49C"/>
-          <KPI val={active.filter(d=>d.deal_score>=70).length} label="HIGH SCORE" color="#D0F94A" sub="Score ≥ 70"/>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
-          <div style={{...cardS,padding:20}}><div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY STAGE</div>
-            {STAGES.map(s=>{const c=active.filter(d=>d.stage===s).length;const pct=active.length?Math.round(c/active.length*100):0;return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...mono,fontSize:10,color:STAGE_COLORS[s],width:80,flexShrink:0}}>{s}</span><div style={{flex:1,height:6,background:"var(--panel2)",borderRadius:3,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:STAGE_COLORS[s],borderRadius:3}}/></div><span style={{...mono,fontSize:10,color:"var(--muted)",width:30,textAlign:"right"}}>{c}</span></div>);})}</div>
-          <div style={{...cardS,padding:20}}><div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY SECTOR</div>
-            {SECTORS.map(s=>{const c=active.filter(d=>d.sector===s).length;const v=active.filter(d=>d.sector===s).reduce((sum,d)=>sum+(d.expected_value||0),0);return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...mono,fontSize:10,color:SECTOR_COLORS[s],width:90,flexShrink:0}}>{s}</span><div style={{flex:1,fontSize:12,color:"var(--sub)"}}>{c} deals</div><span style={{...mono,fontSize:10,color:"var(--muted)"}}>SAR {(v/1e6).toFixed(1)}M</span></div>);})}</div>
-        </div>
-        <div style={{...cardS,padding:20}}><div style={{...mono,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>STALLED — NEEDS ATTENTION</div>
-          {deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5).map(d=><div key={d.id} onClick={()=>setModal({deal:d})} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}}><div><span style={{fontWeight:600,fontSize:13}}>{d.client_name}</span><span style={{...mono,fontSize:10,color:"var(--muted)",marginLeft:8}}>{d.sector}</span></div><span style={{...mono,fontSize:10,color:"#FF4B4B"}}>{Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)}d stale</span></div>)}
-          {deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).length===0&&<div style={{fontSize:13,color:"var(--muted)",textAlign:"center",padding:16}}>No stalled deals</div>}
-        </div>
-      </div>);
-      case "meetings": return <MeetingBrief deals={deals} profile={profile}/>;
-      case "admin": return <AdminTab token={token}/>;
-      default: return <Placeholder label={TABS.find(t=>t.id===tab)?.label||tab} icon={TABS.find(t=>t.id===tab)?.icon||Home}/>;
-    }
-  };
-
-  return (
-    <div style={{...theme,fontFamily:"'DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-      <nav style={{width:sidebar?220:64,background:"var(--panel)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",transition:"width .3s cubic-bezier(0.16,1,0.3,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden"}}>
-        <div style={{padding:sidebar?"16px 16px 10px":"16px 12px 10px",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>setSidebar(!sidebar)}>
-          <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,#00879F,#00D49C,#D0F94A)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:14,flexShrink:0}}>C</div>
-          {sidebar&&<span style={{...ttl,fontSize:15,fontWeight:800,whiteSpace:"nowrap"}}>COMPASS</span>}
-        </div>
-        <div style={{flex:1,padding:"6px",overflowY:"auto"}}>
-          {TABS.filter(t=>!t.adminOnly||isAdmin).map(t=>{const I=t.icon;const on=tab===t.id;return(
-            <button key={t.id} onClick={()=>setTab(t.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:sidebar?"8px 10px":"8px 0",justifyContent:sidebar?"flex-start":"center",background:on?"rgba(0,135,159,0.08)":"transparent",border:"none",borderRadius:8,cursor:"pointer",marginBottom:1,color:on?"#00879F":"var(--dim)",transition:"all .15s"}}>
-              <I size={17} strokeWidth={on?2:1.5}/>{sidebar&&<span style={{fontSize:13,fontWeight:on?600:400,whiteSpace:"nowrap"}}>{t.label}</span>}
-            </button>);})}
-        </div>
-        <div style={{padding:"10px 6px",borderTop:"1px solid var(--border)"}}>
-          <div style={{display:"flex",gap:2,marginBottom:6,justifyContent:"center"}}>
-            <button onClick={()=>setDark(false)} style={{padding:"5px 8px",borderRadius:6,border:"none",cursor:"pointer",background:!dark?"rgba(0,135,159,0.1)":"transparent",color:!dark?"#00879F":"var(--muted)"}}><Sun size={13}/></button>
-            <button onClick={()=>setDark(true)} style={{padding:"5px 8px",borderRadius:6,border:"none",cursor:"pointer",background:dark?"rgba(0,135,159,0.1)":"transparent",color:dark?"#00879F":"var(--muted)"}}><Moon size={13}/></button>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 4px"}}>
-            <div style={{width:28,height:28,borderRadius:8,background:"rgba(0,135,159,0.08)",border:"2px solid rgba(0,135,159,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#00879F",flexShrink:0}}>{name[0]?.toUpperCase()}</div>
-            {sidebar&&<div style={{overflow:"hidden"}}><div style={{fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{name}</div>{isAdmin&&<div style={{...mono,fontSize:8,color:"#D0F94A",letterSpacing:"0.08em"}}>ADMIN</div>}</div>}
-          </div>
-          <button onClick={()=>{setSession(null);setProfile(null);setDeals([]);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:sidebar?"flex-start":"center",gap:8,padding:"7px 10px",background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:11,borderRadius:6}}><LogOut size={13}/>{sidebar&&<span>Sign out</span>}</button>
-        </div>
-      </nav>
-      <main style={{flex:1,marginLeft:sidebar?220:64,transition:"margin-left .3s cubic-bezier(0.16,1,0.3,1)"}}>
-        <div style={{position:"sticky",top:0,zIndex:50,background:"var(--panel)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)"}}>
-          <div style={{position:"relative",flex:1,maxWidth:360}}>
-            <Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)"}}/>
-            <input value={search} onChange={e=>{setSearch(e.target.value);setSearchOpen(true);}} onFocus={()=>setSearchOpen(true)} onBlur={()=>setTimeout(()=>setSearchOpen(false),200)} placeholder="Search deals..." style={{...inp,paddingLeft:32,fontSize:12}}/>
-            {searchOpen&&search&&sr.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:10,marginTop:4,boxShadow:"0 8px 24px rgba(0,0,0,0.1)",zIndex:60,overflow:"hidden"}}>{sr.map(d=><div key={d.id} onMouseDown={()=>{setModal({deal:d});setSearch("");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid var(--border)",fontSize:13,display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:600}}>{d.client_name}</span><span style={{...mono,fontSize:10,color:STAGE_COLORS[d.stage]}}>{d.stage}</span></div>)}</div>}
-          </div>
-          <div style={{...mono,fontSize:10,color:"#FFB800",letterSpacing:"0.1em",padding:"4px 10px",background:"rgba(255,184,0,0.06)",border:"1px solid rgba(255,184,0,0.1)",borderRadius:5}}>STAGING</div>
-        </div>
-        <div style={{padding:"24px 28px 80px",maxWidth:1100}}>{renderTab()}</div>
-      </main>
-      {modal&&<DealModal deal={modal.deal} onClose={()=>setModal(null)} onSave={()=>{setModal(null);loadDeals();}} onDelete={async(id)=>{try{await supa(`/rest/v1/deals?id=eq.${id}`,token,{method:"DELETE"});setModal(null);loadDeals();}catch(x){alert(x.message);}}} token={token}/>}
-    </div>
-  );
 }
