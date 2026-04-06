@@ -81,7 +81,7 @@ async function speakTTS(text,elKey){
   if(!r.ok)throw new Error("TTS failed");const blob=await r.blob();const url=URL.createObjectURL(blob);const a=new Audio(url);a.play();}catch(e){console.warn("TTS error:",e);if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(text);window.speechSynthesis.speak(u);}}}
 
 function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
-  const[pendingDeal,sPD]=useState(null);const[savingDeal,sSD]=useState(false);
+  const[pendingDeal,sPD]=useState(null);const[agentCtx,sAgentCtx]=useState("");const[savingDeal,sSD]=useState(false);
   const saveDeal=async()=>{if(!pendingDeal?.client_name)return;sSD(true);try{
     const pl={client_name:pendingDeal.client_name,sector:pendingDeal.sector||"",stage:pendingDeal.stage||"Recognition",status:"Active",expected_value:parseFloat(pendingDeal.expected_value)||0,contact_name:pendingDeal.contact_name||"",next_step:pendingDeal.next_step||"",updated_at:new Date().toISOString()};
     const res=await q("/rest/v1/deals",token,{method:"POST",body:JSON.stringify(pl)});
@@ -93,7 +93,10 @@ useEffect(()=>{end.current?.scrollIntoView({behavior:"smooth"});},[ms]);
 const DEAL_TOOL={name:"register_deal",description:"Register a new deal when the user mentions meeting a client, closing a deal, or a new business opportunity.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string",enum:["Government","Oil & Gas","Healthcare","Private Sector","Sport"]},expected_value:{type:"number"},contact_name:{type:"string"},stage:{type:"string",enum:["Recognition","Proof","Integration","Dependency","Expansion"]},next_step:{type:"string"}},required:["client_name"]}};
 const BRIEF_TOOL={name:"prepare_meeting_brief",description:"Prepare a meeting brief when user mentions preparing for a meeting or needing to prep.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string"},meeting_type:{type:"string"}},required:["client_name"]}};
 const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);sMs(p=>[...p,{role:"user",content:t}]);const a=deals.filter(d=>d.status==="Active");
-  const sys="You are COMPASS AI for HUMAIN CRM. User: "+(profile?.full_name||"")+". "+a.length+" active deals. When the user mentions meeting a client, new opportunity, or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Otherwise respond normally. Be concise.";
+  const selectedAgent=agentCtx?AGENTS.find(x=>x.key===agentCtx):null;
+    const sys=selectedAgent
+      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+". "+a.length+" active deals. Respond from your agent perspective. Be specific and actionable."
+      :"You are COMPASS AI for HUMAIN CRM. User: "+(profile?.full_name||"")+". "+a.length+" active deals. When the user mentions meeting a client, new opportunity, or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Otherwise respond normally. Be concise.";
   try{const body={apiKey:claudeKey||"",model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[...ms.slice(-10),{role:"user",content:t}],system:sys,tools:[DEAL_TOOL,BRIEF_TOOL]};
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok){const err=await r.text();throw new Error(err||"Claude API error");}const d=await r.json();
     let txt=[];let toolUse=null;
@@ -101,7 +104,13 @@ const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);s
     if(txt.length)sMs(p=>[...p,{role:"assistant",content:txt.join("")}]);
     if(toolUse)sPD({client_name:toolUse.client_name||"",sector:toolUse.sector||"",expected_value:toolUse.expected_value||0,contact_name:toolUse.contact_name||"",stage:toolUse.stage||"Recognition",next_step:toolUse.next_step||""});
   }catch(x){sMs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{sB(false);}};
-return(<div style={CS}><div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8}}><div style={{width:26,height:26,borderRadius:7,background:"rgba(0,135,159,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#00879F"}}><MessageSquare size={13}/></div><span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)"}}>COMPASS AI</span></div>
+return(<div style={CS}><div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8}}>
+      <div style={{width:26,height:26,borderRadius:7,background:"rgba(0,135,159,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#00879F"}}><MessageSquare size={13}/></div>
+      <span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)",flex:1}}>COMPASS AI</span>
+      <select value={agentCtx} onChange={e=>sAgentCtx(e.target.value)} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--border)",background:"var(--panel2)",color:"var(--muted)",cursor:"pointer"}}>
+        <option value="">General</option>{AGENTS.map(a=><option key={a.key} value={a.key}>{a.name}</option>)}
+      </select>
+    </div>
 <div style={{height:280,overflowY:"auto",padding:14}}>{ms.length===0&&<div style={{textAlign:"center",paddingTop:50,color:"var(--muted)",fontSize:13}}>Ask about deals, pipeline, or strategy</div>}{ms.map((m,i)=><div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"80%"}}><div style={{padding:"9px 13px",borderRadius:11,fontSize:13,lineHeight:1.6,background:m.role==="user"?"#0D1B1E":"rgba(0,135,159,0.06)",color:m.role==="user"?"#fff":"var(--text)",border:m.role==="assistant"?"1px solid rgba(0,135,159,0.1)":"none",whiteSpace:"pre-wrap"}}>{m.content}</div>{m.role==="assistant"&&<button onClick={()=>speakTTS(m.content,elKey)} style={{marginTop:3,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:2}}><Volume2 size={12}/></button>}</div></div>)}{b&&<div style={{...M,color:"var(--muted)",fontSize:11}}>Thinking...</div>}<div ref={end}/></div>
 
       {pendingDeal&&<div style={{margin:"0 12px 8px",padding:"14px 16px",background:"rgba(0,212,156,0.04)",border:"1px solid rgba(0,212,156,0.15)",borderRadius:10}}>
@@ -153,13 +162,27 @@ function MktModal({type,item,onClose,onSave,token}){
 function Marketing({token}){const[vw,sVw]=useState("campaigns");const[camps,sCamps]=useState([]);const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[mktModal,sMktModal]=useState(null);
   const loadMkt=useCallback(()=>{if(!token)return;q("/rest/v1/campaigns?select=*&order=created_at.desc",token).then(sCamps).catch(()=>{});q("/rest/v1/leads?select=*&order=created_at.desc",token).then(sLeads).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",token).then(sAssets).catch(()=>{});},[token]);
 useEffect(()=>{loadMkt();},[loadMkt]);
-const tabs=[{id:"campaigns",label:`Campaigns (${camps.length})`,icon:Megaphone},{id:"leads",label:`Leads (${leads.length})`,icon:UserPlus},{id:"content",label:`Content (${assets.length})`,icon:FileText}];
+const tabs=[{id:"campaigns",label:`Campaigns (${camps.length})`,icon:Megaphone},{id:"leads",label:`Leads (${leads.length})`,icon:UserPlus},{id:"content",label:`Content (${assets.length})`,icon:FileText},{id:"calendar",label:"Calendar",icon:Calendar}];
 return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Marketing</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Campaigns, leads, and content assets</div></div>
 <div style={{display:"flex",gap:6,marginBottom:20,justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",gap:6}}>{tabs.map(t=>{const I=t.icon;return(<button key={t.id} onClick={()=>sVw(t.id)} style={{...M,fontSize:11,padding:"7px 14px",borderRadius:8,border:"1px solid var(--border)",background:vw===t.id?"rgba(0,135,159,0.06)":"transparent",color:vw===t.id?"#00879F":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><I size={13}/>{t.label}</button>);})}</div><button onClick={()=>sMktModal({type:vw==="content"?"asset":vw==="leads"?"lead":"campaign",item:null})} style={BP}><Plus size={13} style={{marginRight:5}}/>New</button></div>
 {vw==="campaigns"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Type","Sector","Status","Budget","Dates"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{camps.map(c=><tr key={c.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"campaign",item:c})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{c.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{c.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:c.status==="Active"?"rgba(0,212,156,0.06)":c.status==="Planned"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:c.status==="Active"?"#00D49C":c.status==="Planned"?"#FFB800":"#8A9BAA"}}>{c.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.budget_sar?`SAR ${Number(c.budget_sar).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{c.start_date||"—"}</td></tr>)}{camps.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No campaigns yet</td></tr>}</tbody></table></div>}
 {vw==="leads"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Organization","Sector","Source","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{leads.map(l=><tr key={l.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"lead",item:l})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{l.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{l.organization||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.sector||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.source_type||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:l.status==="Hot"?"rgba(255,75,75,0.06)":l.status==="Warm"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:l.status==="Hot"?"#FF4B4B":l.status==="Warm"?"#FFB800":"#8A9BAA"}}>{l.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{l.created_at?new Date(l.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{leads.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No leads yet</td></tr>}</tbody></table></div>}
 {vw==="content"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Title","Type","Sector","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{assets.map(a=><tr key={a.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"asset",item:a})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{a.title||a.name||"—"}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{a.asset_type||a.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{a.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:"rgba(0,135,159,0.06)",color:"#00879F"}}>{a.status||"Draft"}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{a.created_at?new Date(a.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{assets.length===0&&<tr><td colSpan={5} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No assets yet</td></tr>}</tbody></table></div>}
 
+{vw==="calendar"&&<div style={CS}><div style={{padding:20}}>
+  <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:14}}>CAMPAIGN TIMELINE</div>
+  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+    {camps.filter(c2=>c2.start_date).sort((a,b2)=>(a.start_date||"").localeCompare(b2.start_date||"")).map(c2=>{const isActive=c2.status==="Active";return(
+      <div key={c2.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:isActive?"rgba(0,212,156,0.03)":"transparent",borderRadius:8,border:"1px solid var(--border)"}}>
+        <div style={{...M,fontSize:10,color:"var(--muted)",width:70,flexShrink:0}}>{c2.start_date?new Date(c2.start_date+"T00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</div>
+        <div style={{width:8,height:8,borderRadius:4,background:isActive?"#00D49C":c2.status==="Planned"?"#FFB800":"#8A9BAA",flexShrink:0}}/>
+        <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{c2.name}</div><div style={{...M,fontSize:10,color:"var(--muted)"}}>{c2.type||""} · {c2.sector||"All sectors"}</div></div>
+        <div style={{...M,fontSize:10,color:"var(--muted)"}}>{c2.end_date?new Date(c2.end_date+"T00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</div>
+        <span style={{...M,fontSize:9,padding:"2px 6px",borderRadius:3,background:isActive?"rgba(0,212,156,0.06)":"rgba(138,155,170,0.06)",color:isActive?"#00D49C":"#8A9BAA"}}>{c2.status}</span>
+      </div>);})}
+    {camps.filter(c2=>c2.start_date).length===0&&<div style={{textAlign:"center",padding:24,color:"var(--muted)",fontSize:13}}>No campaigns with dates set</div>}
+  </div>
+</div></div>}
 {mktModal&&<MktModal type={mktModal.type} item={mktModal.item} onClose={()=>sMktModal(null)} onSave={()=>{sMktModal(null);loadMkt();}} token={token}/>}
 </div>);}
 
@@ -311,7 +334,7 @@ async function runAllAgents(token,deals,leads,assets,debriefs,claudeKey){
   }else{results.winloss_intel="Not enough won/lost data";}
 
   results.team_coach=await runAIAgent(token,"Team Coach",
-    "Pipeline has "+active.length+" active deals. "+deals.filter(d=>d.status==="Won").length+" won, "+deals.filter(d=>d.status==="Lost").length+" lost. Average deal value: SAR "+Math.round(active.reduce((s,d)=>s+(d.expected_value||0),0)/Math.max(active.length,1)).toLocaleString()+". Provide 3 coaching recommendations for the BD team.",claudeKey);
+    "Pipeline has "+active.length+" active deals. "+deals.filter(d=>d.status==="Won",claudeKey).length+" won, "+deals.filter(d=>d.status==="Lost").length+" lost. Average deal value: SAR "+Math.round(active.reduce((s,d)=>s+(d.expected_value||0),0)/Math.max(active.length,1)).toLocaleString()+". Provide 3 coaching recommendations for the BD team.",claudeKey);
 
   results.campaign_roi=await runAIAgent(token,"Campaign ROI",
     "We have "+active.length+" active deals across sectors. Leads feed from campaigns. Recommend how to measure and improve campaign ROI for a sovereign AI company in Saudi Arabia. 3-5 actionable points.",claudeKey);
@@ -504,6 +527,7 @@ function Meetings({deals,profile,token,elKey,claudeKey}){
 
         <div style={{display:"flex",gap:10}}>
           <button onClick={generate} disabled={genBusy||!bf.client.trim()} style={{...BP,padding:"10px 24px",opacity:genBusy||!bf.client.trim()?0.5:1}}><FileText size={14} style={{marginRight:6}}/>{genBusy?"Generating...":"Generate Brief"}</button>
+          {brief&&<button onClick={()=>{const w=window.open("","_blank");w.document.write("<html><head><title>COMPASS Brief — "+bf.client+"</title><style>body{font-family:DM Sans,sans-serif;max-width:700px;margin:40px auto;padding:0 32px;color:#0a0a0a;line-height:1.75}h1{font-size:24px;margin-bottom:4px}h2{font-size:11px;letter-spacing:0.15em;color:#00879F;margin-bottom:20px;font-family:DM Mono,monospace}.meta{font-size:12px;color:#999;margin-bottom:24px}.bar{height:2px;background:linear-gradient(90deg,#D0F94A,#00D49C,#00879F);margin-bottom:24px}pre{white-space:pre-wrap;font-family:DM Sans,sans-serif;font-size:13.5px;line-height:1.75;color:#333}</style></head><body><h2>HUMAIN COMPASS — PRE-MEETING BRIEF</h2><h1>"+bf.client+"</h1><div class=meta>"+bf.sector+" · "+bf.meetingType+" · Generated "+new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"})+"</div><div class=bar></div><pre>"+brief.replace(/</g,"&lt;")+"</pre></body></html>");w.document.close();w.print();}} style={{...BG,padding:"10px 24px"}}><FileText size={14} style={{marginRight:6}}/>Print / PDF</button>}
           <button onClick={clearBf} style={{...BG,padding:"10px 24px"}}>Clear</button>
         </div>
       </div>
@@ -554,7 +578,7 @@ useEffect(()=>{if(!token)return;q("/rest/v1/profiles?select=*&order=full_name.as
 return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Admin</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{users.length} users · {reqs.filter(r=>r.status==="Pending").length} pending</div></div>
 <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>TEAM</div>
 <div style={{...CS,marginBottom:24}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Email","Role","Team","Last Seen"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{users.map(u=><tr key={u.id} style={{borderBottom:"1px solid var(--border)"}}><td style={{padding:"10px 14px",fontWeight:600}}>{u.full_name||"—"}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{u.email}</td><td style={{padding:"10px 14px"}}><select value={u.role||"member"} onChange={async(e)=>{const nr=e.target.value;try{await q(`/rest/v1/profiles?id=eq.${u.id}`,token,{method:"PATCH",body:JSON.stringify({role:nr})});sU(p=>p.map(x=>x.id===u.id?{...x,role:nr}:x));}catch(ex){alert(ex.message);}}} style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:u.role==="admin"?"rgba(208,249,74,0.1)":"rgba(0,135,159,0.06)",color:u.role==="admin"?"#6B8C00":"#00879F",border:"none",cursor:"pointer"}}><option value="admin">admin</option><option value="manager">manager</option><option value="member">member</option><option value="viewer">viewer</option></select></td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{u.team||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--muted)"}}>{u.last_seen?new Date(u.last_seen).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"Never"}</td></tr>)}</tbody></table></div>
-{reqs.length>0&&<><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>REQUESTS</div><div style={CS}>{reqs.map(r=><div key={r.id} style={{padding:"14px 18px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:600,fontSize:13}}>{r.full_name}</div><div style={{fontSize:12,color:"var(--sub)"}}>{r.email} · {r.department||"—"}</div></div><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{...M,fontSize:10,padding:"3px 10px",borderRadius:4,background:r.status==="Pending"?"rgba(255,184,0,0.08)":"rgba(0,212,156,0.08)",color:r.status==="Pending"?"#FFB800":"#00D49C"}}>{r.status}</span>{r.status==="Pending"&&<><button onClick={async()=>{try{await q(`/rest/v1/access_requests?id=eq.${r.id}`,token,{method:"PATCH",body:JSON.stringify({status:"Approved"})});sR(p=>p.map(x=>x.id===r.id?{...x,status:"Approved"}:x));}catch(e){alert(e.message);}}} style={{...BP,padding:"4px 10px",fontSize:10}}>Approve</button><button onClick={async()=>{try{await q(`/rest/v1/access_requests?id=eq.${r.id}`,token,{method:"PATCH",body:JSON.stringify({status:"Rejected"})});sR(p=>p.map(x=>x.id===r.id?{...x,status:"Rejected"}:x));}catch(e){alert(e.message);}}} style={{...BG,padding:"4px 10px",fontSize:10,color:"#FF4B4B"}}>Reject</button></>}</div></div>)}</div></>}
+{reqs.length>0&&<><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>REQUESTS</div><div style={CS}>{reqs.map(r=><div key={r.id} style={{padding:"14px 18px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:600,fontSize:13}}>{r.full_name}</div><div style={{fontSize:12,color:"var(--sub)"}}>{r.email} · {r.department||"—"}</div></div><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{...M,fontSize:10,padding:"3px 10px",borderRadius:4,background:r.status==="Pending"?"rgba(255,184,0,0.08)":"rgba(0,212,156,0.08)",color:r.status==="Pending"?"#FFB800":"#00D49C"}}>{r.status}</span>{r.status==="Pending"&&<><button onClick={async()=>{try{await q(`/rest/v1/access_requests?id=eq.${r.id}`,token,{method:"PATCH",body:JSON.stringify({status:"Approved"})});sR(p=>p.map(x=>x.id===r.id?{...x,status:"Approved"}:x));}catch(e){alert(e.message);}}} style={{...BP,padding:"4px 10px",fontSize:10}}>Approve</button><button onClick={()=>{const draft="Subject: Welcome to COMPASS — "+r.full_name+"\n\nDear "+r.full_name+",\n\nYour access to COMPASS has been approved. You can now sign in at:\nhttps://hcompass-staging.netlify.app/\n\nYour role: Member\nTeam: "+(r.department||"BD")+"\n\nCOMPASS is HUMAIN's sovereign intelligence platform for business development. You'll find:\n- AI-powered meeting briefs\n- Pipeline intelligence from 12 agents\n- Real-time deal tracking\n\nPlease reach out if you need any help getting started.\n\nBest,\nCOMPASS Admin";navigator.clipboard.writeText(draft).then(()=>alert("Welcome email copied to clipboard")).catch(()=>prompt("Copy this email:",draft));}} style={{...BG,padding:"4px 10px",fontSize:10,color:"#00879F"}}>Email</button><button onClick={async()=>{try{await q(`/rest/v1/access_requests?id=eq.${r.id}`,token,{method:"PATCH",body:JSON.stringify({status:"Rejected"})});sR(p=>p.map(x=>x.id===r.id?{...x,status:"Rejected"}:x));}catch(e){alert(e.message);}}} style={{...BG,padding:"4px 10px",fontSize:10,color:"#FF4B4B"}}>Reject</button></>}</div></div>)}</div></>}
 </div>);}
 
 
@@ -588,6 +612,21 @@ function DailyIntel({deals,profile,open,onClose}){
   </div>);
 }
 
+
+function NotifPanel({open,onClose,requests,token,onRefresh}){
+  const markRead=async(id)=>{try{await q(`/rest/v1/access_requests?id=eq.${id}`,token,{method:"PATCH",body:JSON.stringify({status:"Reviewed"})});if(onRefresh)onRefresh();}catch(e){}};
+  return(<div style={{position:"fixed",top:0,right:open?0:-400,width:380,bottom:0,background:"var(--panel)",borderLeft:"1px solid var(--border)",zIndex:250,transition:"right .35s cubic-bezier(0.16,1,0.3,1)",display:"flex",flexDirection:"column",boxShadow:open?"-8px 0 32px rgba(0,0,0,0.1)":"none"}}>
+    <div style={{padding:"18px 20px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8}}><Bell size={16} color="#00879F"/><span style={{...T,fontSize:16,fontWeight:700}}>Notifications</span></div><button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)"}}><X size={16}/></button></div>
+    <div style={{flex:1,overflowY:"auto"}}>
+      {requests.filter(r=>r.status==="Pending").map(r=><div key={r.id} style={{padding:"14px 20px",borderBottom:"1px solid var(--border)",display:"flex",gap:12,alignItems:"flex-start"}}>
+        <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#00879F,#00D49C)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{(r.full_name||"?")[0]}</div>
+        <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{r.full_name}</div><div style={{fontSize:12,color:"var(--sub)",marginTop:2}}>Requested access · {r.department||"—"}</div><div style={{...M,fontSize:10,color:"var(--muted)",marginTop:4}}>{r.requested_at?new Date(r.requested_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</div></div>
+        <button onClick={()=>markRead(r.id)} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:4,border:"1px solid var(--border)",background:"none",color:"var(--muted)",cursor:"pointer"}}>Dismiss</button>
+      </div>)}
+      {requests.filter(r=>r.status==="Pending").length===0&&<div style={{padding:40,textAlign:"center",color:"var(--muted)",fontSize:13}}>No pending notifications</div>}
+    </div>
+  </div>);
+}
 function FwAcc({b}){const[open,setOpen]=useState(false);return(
   <div style={{...CS,marginBottom:8,cursor:"pointer"}} onClick={()=>setOpen(!open)}>
     <div style={{padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
@@ -604,16 +643,16 @@ function FwAcc({b}){const[open,setOpen]=useState(false);return(
 const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...T,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...M,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — COMING SOON</div></div>;
 
 export default function App(){
-  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[dealFilter,sDealFilter]=useState("");const[stageFilter,setStageFilter]=useState("");const[statusFilter,setStatusFilter]=useState("");const[dealSort,sDealSort]=useState("updated");const[chatActive,sChatActive]=useState(false);const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
+  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[dealFilter,sDealFilter]=useState("");const[stageFilter,setStageFilter]=useState("");const[statusFilter,setStatusFilter]=useState("");const[dealSort,sDealSort]=useState("updated");const[chatActive,sChatActive]=useState(false);const[homeCat,sHomeCat]=useState("foryou");const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[notifOpen,sNotifOpen]=useState(false);const[accessReqs,sAR]=useState([]);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
   const tk=session?.access_token;const isA=profile?.role==="admin";
   const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[debriefs,sDeb]=useState([]);const[suggestions,sSugg]=useState([]);const[savedBriefs2,sSB2]=useState([]);
-  const ld=useCallback(()=>{if(tk){q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);q("/rest/v1/leads?select=*&order=created_at.desc",tk).then(d=>sLeads(d||[])).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",tk).then(d=>sAssets(d||[])).catch(()=>{});q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",tk).then(d=>sDeb(d||[])).catch(()=>{});q('/rest/v1/agent_queue?status=eq.pending&select=*&order=created_at.desc&limit=8',tk).then(d=>sSugg(d||[])).catch(()=>{});q('/rest/v1/briefs?select=id,client_name,sector&order=created_at.desc&limit=10',tk).then(d=>sSB2(d||[])).catch(()=>{});}},[tk]);
+  const ld=useCallback(()=>{if(tk){q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);q("/rest/v1/leads?select=*&order=created_at.desc",tk).then(d=>sLeads(d||[])).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",tk).then(d=>sAssets(d||[])).catch(()=>{});q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",tk).then(d=>sDeb(d||[])).catch(()=>{});q('/rest/v1/agent_queue?status=eq.pending&select=*&order=created_at.desc&limit=8',tk).then(d=>sSugg(d||[]));q('/rest/v1/access_requests?select=*&order=requested_at.desc&limit=20',tk).then(d=>sAR(d||[])).then(d=>sSugg(d||[])).catch(()=>{});q('/rest/v1/briefs?select=id,client_name,sector&order=created_at.desc&limit=10',tk).then(d=>sSB2(d||[])).catch(()=>{});}},[tk]);
   useEffect(()=>{if(!tk)return;const uid=session.user?.id;q('/rest/v1/system_config?config_key=eq.elevenlabs_api_key&select=config_value',tk).then(d=>{if(d?.[0]?.config_value)sElKey(d[0].config_value.trim());}).catch(()=>{});q('/rest/v1/system_config?config_key=eq.claude_api_key&select=config_value',tk).then(d=>{if(d?.[0]?.config_value)sCK(d[0].config_value.replace(/\u2014/g,'--').replace(/[^\x20-\x7E]/g,'').trim());}).catch(()=>{});q(`/rest/v1/profiles?id=eq.${uid}&select=*`,tk).then(d=>{if(d?.[0])sP(d[0]);}).catch(console.error);ld();},[tk]);
   // Poll notifications
-  useEffect(()=>{if(!tk||!isA)return;const poll=()=>q("/rest/v1/access_requests?status=eq.Pending&select=id",tk).then(d=>sN(d?.length||0)).catch(()=>{});poll();const iv=setInterval(poll,60000);return()=>clearInterval(iv);},[tk,isA]);
+  useEffect(()=>{if(!tk||!isA)return;const poll=()=>q("/rest/v1/access_requests?status=eq.Pending&select=id",tk).then(d=>{const n=d?.length||0;sN(n);if(n>0&&document.hidden)document.title="("+n+") COMPASS Staging";else document.title="COMPASS Staging";}).catch(()=>{});poll();const iv=setInterval(poll,60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)document.title="COMPASS Staging";});return()=>clearInterval(iv);},[tk,isA]);
   
   // Session idle timeout
-  const[idleWarn,sIdleWarn]=useState(false);
+  const[idleWarn,sIdleWarn]=useState(false);const[tourStep,sTourStep]=useState(-1);
   // Toast notification system
   const[toast,sToast]=useState(null);
   const showToast=(msg,type)=>{sToast({msg,type});setTimeout(()=>sToast(null),5000);};const idleRef=useRef(null);const warnRef=useRef(null);
@@ -623,6 +662,8 @@ export default function App(){
     const events=["mousedown","keydown","scroll","touchstart"];events.forEach(e=>window.addEventListener(e,reset));reset();
     return()=>{events.forEach(e=>window.removeEventListener(e,reset));clearTimeout(idleRef.current);clearTimeout(warnRef.current);};
   },[tk]);
+  // Inject CSS animations
+  useEffect(()=>{const s=document.createElement("style");s.textContent="@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}";document.head.appendChild(s);return()=>s.remove();},[]);
   // Agent auto-run timer — hourly agents every 60 min
   useEffect(()=>{if(!tk)return;
     const hourlyAgents=async()=>{if(!deals||deals.length===0){console.log("[COMPASS] Skipping agent run — no deals loaded yet");return;}console.log("[COMPASS] Running hourly agents...");
@@ -643,7 +684,8 @@ export default function App(){
     return r.slice(0,10);})():[];
 
   const renderTab=()=>{switch(tab){
-    case"home":return(<div><div style={{marginBottom:28}}><div style={{...T,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{gr}, {nm.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div>{!chatActive&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={ac.length} l="ACTIVE DEALS" c="#00879F"/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE VALUE" c="#00D49C"/><KPI v={wo.length} l="WON DEALS" c="#D0F94A"/><KPI v={SECTORS.filter(s=>ac.some(d=>d.sector===s)).length} l="SECTORS ACTIVE" c="#00879F"/></div>}{suggestions.length>0&&!chatActive&&<div style={{marginBottom:20}}>
+    case"home":return(<div><div style={{marginBottom:28}}><div style={{...T,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{gr}, {nm.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div>{!chatActive&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={ac.length} l="ACTIVE DEALS" c="#00879F"/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE VALUE" c="#00D49C"/><KPI v={wo.length} l="WON DEALS" c="#D0F94A"/><KPI v={SECTORS.filter(s=>ac.some(d=>d.sector===s)).length} l="SECTORS ACTIVE" c="#00879F"/></div>}{!chatActive&&<div style={{display:"flex",gap:6,marginBottom:16}}>{[{id:"foryou",label:"For you"},{id:"pipeline",label:"Pipeline"},{id:"intelligence",label:"Intelligence"},{id:"marketing",label:"Marketing"}].map(cat=><button key={cat.id} onClick={()=>sHomeCat(cat.id)} style={{...M,fontSize:10,padding:"6px 14px",borderRadius:6,border:"1px solid var(--border)",background:homeCat===cat.id?"rgba(0,135,159,0.06)":"transparent",color:homeCat===cat.id?"#00879F":"var(--muted)",cursor:"pointer"}}>{cat.label}</button>)}</div>}
+        {suggestions.length>0&&!chatActive&&<div style={{marginBottom:20}}>
           <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>AGENT SUGGESTIONS</div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {suggestions.slice(0,4).map(s=>{const prioColor=s.priority==="critical"?"#FF4B4B":s.priority==="high"?"#FFB800":"#00879F";return(
@@ -664,10 +706,11 @@ export default function App(){
     case"dashboard":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Dashboard</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={deals.length} l="TOTAL DEALS" s={`${ac.length} active`}/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE" c="#00879F"/><KPI v={`${deals.length?Math.round(wo.length/deals.length*100):0}%`} l="WIN RATE" c="#00D49C"/><KPI v={ac.filter(d=>d.deal_score>=70).length} l="HIGH SCORE" c="#D0F94A"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY STAGE</div>{STAGES.map(s=>{const c=ac.filter(d=>d.stage===s).length;const p=ac.length?Math.round(c/ac.length*100):0;return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:SC[s],width:80,flexShrink:0}}>{s}</span><div style={{flex:1,height:6,background:"var(--panel2)",borderRadius:3,overflow:"hidden"}}><div style={{width:`${p}%`,height:"100%",background:SC[s],borderRadius:3}}/></div><span style={{...M,fontSize:10,color:"var(--muted)",width:24,textAlign:"right"}}>{c}</span></div>);})}</div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY SECTOR</div>{SECTORS.map(s=>{const c=ac.filter(d=>d.sector===s).length;const v=ac.filter(d=>d.sector===s).reduce((x,d)=>x+(d.expected_value||0),0);return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:XC[s],width:90,flexShrink:0}}>{s}</span><div style={{flex:1,fontSize:12,color:"var(--sub)"}}>{c}</div><span style={{...M,fontSize:10,color:"var(--muted)"}}>SAR {(v/1e6).toFixed(1)}M</span></div>);})}</div></div>
         {isA&&<div style={{...CS,padding:20,marginBottom:16,border:"1px solid rgba(208,249,74,0.15)"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Shield size={14} color="#D0F94A"/><span style={{...M,fontSize:10,letterSpacing:"0.1em",color:"#D0F94A"}}>CEO EXECUTIVE SUMMARY</span></div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>PIPELINE COVERAGE</div><div style={{...T,fontSize:20,fontWeight:800,color:"#00879F"}}>{pv>0?((pv/(10000000))*100).toFixed(0)+"%":"—"}</div><div style={{...M,fontSize:9,color:"var(--muted)",marginTop:2}}>vs SAR 10M target</div></div>
-            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>WEIGHTED PIPELINE</div><div style={{...T,fontSize:20,fontWeight:800,color:"#00D49C"}}>SAR {(ac.reduce((s,d)=>s+((d.expected_value||0)*(d.probability||0)/100),0)/1e6).toFixed(1)}M</div><div style={{...M,fontSize:9,color:"var(--muted)",marginTop:2}}>probability-adjusted</div></div>
-            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>SECTOR COVERAGE</div><div style={{...T,fontSize:20,fontWeight:800}}>{SECTORS.filter(s=>ac.some(d=>d.sector===s)).length}/{SECTORS.length}</div><div style={{...M,fontSize:9,color:SECTORS.filter(s=>!ac.some(d=>d.sector===s)).length>0?"#FFB800":"#00D49C",marginTop:2}}>{SECTORS.filter(s=>!ac.some(d=>d.sector===s)).length>0?"Gap: "+SECTORS.filter(s=>!ac.some(d=>d.sector===s)).join(", "):"Full coverage"}</div></div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:12}}>
+            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>Q TARGET</div><div style={{...T,fontSize:18,fontWeight:800}}>SAR 10M</div></div>
+            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>PIPELINE COVERAGE</div><div style={{...T,fontSize:18,fontWeight:800,color:pv>=10000000?"#00D49C":"#FFB800"}}>{(pv/10000000*100).toFixed(0)}%</div></div>
+            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>WEIGHTED</div><div style={{...T,fontSize:18,fontWeight:800,color:"#00D49C"}}>SAR {(ac.reduce((s,d)=>s+((d.expected_value||0)*(d.probability||0)/100),0)/1e6).toFixed(1)}M</div></div>
+            <div style={{padding:12,background:"var(--panel2)",borderRadius:8}}><div style={{...M,fontSize:9,color:"var(--muted)",marginBottom:4}}>SECTOR GAPS</div><div style={{...T,fontSize:18,fontWeight:800,color:SECTORS.filter(s=>!ac.some(d=>d.sector===s)).length>0?"#FF4B4B":"#00D49C"}}>{SECTORS.filter(s=>!ac.some(d=>d.sector===s)).length}/{SECTORS.length}</div></div>
           </div>
         </div>}
         <div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>STALLED</div>{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5).map(d=><div key={d.id} onClick={()=>sM({deal:d})} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}}><span style={{fontWeight:600,fontSize:13}}>{d.client_name}</span><span style={{...M,fontSize:10,color:"#FF4B4B"}}>{Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)}d</span></div>)}{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).length===0&&<div style={{fontSize:13,color:"var(--muted)",textAlign:"center",padding:16}}>All deals active</div>}</div></div>);
@@ -676,153 +719,96 @@ export default function App(){
     case"marketing":return<Marketing token={tk}/>;
     case"admin":return<Admin token={tk}/>;
     case"framework":return(<div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>THE FRAMEWORK</span></div>
-        <div style={{...T,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.15,marginBottom:6}}>We don't sell AI.<br/>We close the gap between<br/>ambition and <span style={{color:"#00D49C"}}>execution</span>.</div>
-        <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7,maxWidth:540,marginBottom:28}}>Every sector in Saudi Arabia shares the same structural problem. Leadership has announced a direction. The organisation has not caught up. Data does not move. Pilots do not become products.</div>
-        <div style={{height:1,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",marginBottom:32}}/>
-
-        {/* Master Thread */}
-        <div style={{borderLeft:"3px solid #00D49C",padding:"20px 28px",background:"rgba(0,212,156,0.012)",borderRadius:"0 12px 12px 0",marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.18em",color:"#00D49C",marginBottom:6}}>MASTER THREAD</div>
-          <div style={{fontSize:14.5,color:"var(--sub)",lineHeight:1.75}}>Every sector has the same execution gap between sovereign ambition and operational reality. HUMAIN closes that gap. Not as a vendor. Not as a consultant. As the sovereign intelligence partner that stays, builds, and compounds.</div>
-        </div>
-
-        {/* Sector Beliefs */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 01</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>Sector Belief Statements</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>Five convictions built from real sector intelligence. These are not use cases. They are what HUMAIN holds as true going into every room.</div>
-          {[{s:"Government",sub:"Cross-ministry orchestration",fear:"Losing the AI narrative while the execution machinery between 193 entities stays broken beneath world-class platform appearances.",belief:"The government proved it can transform at scale. Digital transformation is the reference. Now they need to repeat it with AI. The blockers are structural. HUMAIN's role is trusted connective tissue.",c:"#00879F"},
-            {s:"Oil & Gas",sub:"OT/IT + domain expertise",fear:"Becoming strategically irrelevant before proving O&G companies are technology companies. Two clocks. One window.",belief:"Leadership manages two simultaneous clocks: proving relevance and extracting asset value. The blockers are human and cultural: OT/IT that won't integrate, AI teams that don't understand oilfields.",c:"#FFB800"},
-            {s:"Healthcare",sub:"Arabic clinical AI",fear:"Deploying AI that causes clinical harm, or losing Vision 2030 momentum during the MOH-to-clusters structural shift.",belief:"Healthcare leadership navigates two fears simultaneously. Every dimension is underserved: broken EHR data, no Arabic clinical AI, clinicians who won't change, governance unwritten. HUMAIN builds the full stack.",c:"#00D49C"},
-            {s:"Private Sector",sub:"Data foundation first",fear:"PIF competitors, Saudization mandates, CEO promises the org cannot execute, and talent drain to giga-projects.",belief:"The most exposed sector, least equipped to absorb pressure. Blockers run deep: legacy infrastructure, no AI talent pipeline, decision structures too centralized for AI speed. HUMAIN is the honest diagnostic.",c:"#D0F94A"},
-            {s:"Sport",sub:"Ecosystem data fabric",fear:"Spending billions and producing nothing sustainable. Spectacle narrative cementing before substance has time to develop.",belief:"Saudi sport operates under the most visible accountability. The answer is not more investment. It is intelligence. The connective tissue that has never existed between clubs, federations, venues, academies.",c:"#FF6B6B"}
-          ].map(b=><FwAcc key={b.s} b={b}/>)}
-        </div>
-
-        {/* 5 Stages */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 02</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Five-Stage Client Progression</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The stages are not milestones to be declared. They are observed states. A client cannot be pushed to the next stage.</div>
-          {[{n:"Recognition",d:"Client feels understood. Our belief matched their reality. They want to continue the conversation.",c:"#8A9BAA"},
-            {n:"Proof",d:"First visible, attributable result delivered. Client has something to show internally. Trust is earned.",c:"#FFB800"},
-            {n:"Integration",d:"HUMAIN is embedded in a workflow. Removing us now costs real effort. Dependency is forming.",c:"#00879F"},
-            {n:"Dependency",d:"Client cannot operate the relevant function without HUMAIN. Saudi talent is built on our systems.",c:"#00D49C"},
-            {n:"Expansion",d:"Client pulls HUMAIN into adjacent problems. We are invited into rooms never originally scoped.",c:"#6B8C00"}
-          ].map((s,i)=><div key={s.n} style={{display:"flex",gap:16,padding:"16px 0",borderBottom:"1px solid var(--border)"}}>
-            <div style={{width:36,height:36,borderRadius:10,background:s.c+"15",display:"flex",alignItems:"center",justifyContent:"center",...T,fontSize:16,fontWeight:800,color:s.c,flexShrink:0}}>{i+1}</div>
-            <div><div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{s.n}</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>{s.d}</div></div>
-          </div>)}
-        </div>
-
-        {/* 8 Principles */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 03</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Eight Engagement Principles</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The operating system of HUMAIN's client relationships. Violating any one collapses trust that takes months to rebuild.</div>
-          {["Lead with the execution gap, never the product","The belief statement is the key, not the demo","Every meeting ends with an advance, not a continuation","Observable signals only. No assumptions.","The debrief is mandatory, not optional","Never create urgency that does not exist","The WhatsApp message from the CEO is the highest buying signal","Sovereignty is not a feature. It is the foundation."
-          ].map((p,i)=><div key={i} style={{padding:"14px 18px",background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:10,marginBottom:6,display:"flex",gap:12,alignItems:"flex-start"}}>
-            <span style={{...M,fontSize:10,color:"#00879F",flexShrink:0,marginTop:2}}>0{i+1}</span>
-            <span style={{fontSize:14,fontWeight:600,lineHeight:1.5}}>{p}</span>
-          </div>)}
-        </div>
-
-        {/* Irreversibility */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 04</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Four Conditions of Irreversibility</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The goal is not a signed contract. The goal is a client who cannot imagine operating without HUMAIN.</div>
-          {[{t:"Workflow Dependency",d:"HUMAIN is embedded in a production workflow that runs daily. Removing it would require rebuilding from scratch."},
-            {t:"Capability Dependency",d:"The client's team has built skills on HUMAIN's platform. Leaving would mean losing capabilities they have already internalised."},
-            {t:"Sovereign Trust",d:"HUMAIN has been granted access to data or decisions that no foreign competitor could be given."},
-            {t:"Expanding Invitation",d:"Other departments or entities are asking for access because of what the first department achieved."}
-          ].map((c2,i)=><div key={i} style={{...CS,padding:"18px 22px",marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}><div style={{width:24,height:24,borderRadius:6,background:"rgba(0,135,159,0.06)",display:"flex",alignItems:"center",justifyContent:"center",...M,fontSize:10,color:"#00879F"}}>{i+1}</div><span style={{fontSize:14,fontWeight:700}}>{c2.t}</span></div>
-            <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,paddingLeft:34}}>{c2.d}</div>
-          </div>)}
-          <div style={{...M,fontSize:11,color:"var(--muted)",textAlign:"center",marginTop:12}}>All four must be true simultaneously. Three out of four is a strong relationship. Four out of four is irreversible attachment.</div>
-        </div>
-      </div>);
+  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>THE FRAMEWORK</span></div>
+  <div style={{...T,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.15,marginBottom:6}}>We don't sell AI.<br/>We close the gap between<br/>ambition and <span style={{color:"#00D49C"}}>execution</span>.</div>
+  <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7,maxWidth:540,marginBottom:28}}>Every sector in Saudi Arabia shares the same structural problem. Leadership has announced a direction. The organisation has not caught up.</div>
+  <div style={{height:1,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",marginBottom:32}}/>
+  <div style={{borderLeft:"3px solid #00D49C",padding:"20px 28px",background:"rgba(0,212,156,0.012)",borderRadius:"0 12px 12px 0",marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.18em",color:"#00D49C",marginBottom:6}}>MASTER THREAD</div>
+    <div style={{fontSize:14.5,color:"var(--sub)",lineHeight:1.75}}>Every sector has the same execution gap between sovereign ambition and operational reality. HUMAIN closes that gap. Not as a vendor. Not as a consultant. As the sovereign intelligence partner that stays, builds, and compounds.</div>
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 01</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>Sector Belief Statements</div>
+    <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>Five convictions built from real sector intelligence. Click to expand.</div>
+    {[{s:"Government",sub:"Cross-ministry orchestration",fear:"Losing the AI narrative while execution machinery between 193 entities stays broken.",belief:"The government proved it can transform at scale. Now they need to repeat it with AI. HUMAIN's role is trusted connective tissue.",c:"#00879F"},{s:"Oil & Gas",sub:"OT/IT + domain expertise",fear:"Becoming strategically irrelevant before proving O&G companies are technology companies.",belief:"Leadership manages two simultaneous clocks: proving relevance and extracting asset value. The blockers are human and cultural.",c:"#FFB800"},{s:"Healthcare",sub:"Arabic clinical AI",fear:"Deploying AI that causes clinical harm, or losing Vision 2030 momentum during structural shift.",belief:"Every dimension is underserved: broken EHR data, no Arabic clinical AI, clinicians who won't change. HUMAIN builds the full stack.",c:"#00D49C"},{s:"Private Sector",sub:"Data foundation first",fear:"PIF competitors, Saudization mandates, CEO promises the org cannot execute.",belief:"The most exposed sector, least equipped. Blockers: legacy infrastructure, no AI talent, decisions too centralized for AI speed.",c:"#D0F94A"},{s:"Sport",sub:"Ecosystem data fabric",fear:"Spending billions producing nothing sustainable. Spectacle before substance.",belief:"The answer is not more investment. It is intelligence. Connective tissue between clubs, federations, venues, academies.",c:"#FF6B6B"}].map(b=><FwAcc key={b.s} b={b}/>)}
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 02</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Five-Stage Client Progression</div>
+    <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>Observed states, not declared milestones. A client is pulled to the next stage by the value of the current one.</div>
+    {[{n:"Recognition",d:"Client feels understood. Our belief matched their reality. They want to continue.",c:"#8A9BAA"},{n:"Proof",d:"First visible, attributable result. Client has something to show internally. Trust earned.",c:"#FFB800"},{n:"Integration",d:"HUMAIN is embedded in a workflow. Removing us costs real effort. Dependency forming.",c:"#00879F"},{n:"Dependency",d:"Client cannot operate the relevant function without HUMAIN. Saudi talent built on our systems.",c:"#00D49C"},{n:"Expansion",d:"Client pulls HUMAIN into adjacent problems. Invited into rooms never originally scoped.",c:"#6B8C00"}].map((s,i)=><div key={s.n} style={{display:"flex",gap:16,padding:"16px 0",borderBottom:"1px solid var(--border)"}}><div style={{width:36,height:36,borderRadius:10,background:s.c+"15",display:"flex",alignItems:"center",justifyContent:"center",...T,fontSize:16,fontWeight:800,color:s.c,flexShrink:0}}>{i+1}</div><div><div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{s.n}</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>{s.d}</div></div></div>)}
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 03</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Eight Engagement Principles</div>
+    <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The operating system of HUMAIN's client relationships.</div>
+    {["Lead with the execution gap, never the product","The belief statement is the key, not the demo","Every meeting ends with an advance, not a continuation","Observable signals only. No assumptions.","The debrief is mandatory, not optional","Never create urgency that does not exist","The WhatsApp message from the CEO is the highest buying signal","Sovereignty is not a feature. It is the foundation."].map((p,i)=><div key={i} style={{padding:"14px 18px",background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:10,marginBottom:6,display:"flex",gap:12,alignItems:"flex-start"}}><span style={{...M,fontSize:10,color:"#00879F",flexShrink:0,marginTop:2}}>0{i+1}</span><span style={{fontSize:14,fontWeight:600,lineHeight:1.5}}>{p}</span></div>)}
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 04</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Four Conditions of Irreversibility</div>
+    <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The goal is a client who cannot imagine operating without HUMAIN.</div>
+    {[{t:"Workflow Dependency",d:"HUMAIN is embedded in a production workflow that runs daily."},{t:"Capability Dependency",d:"The client's team has built skills on HUMAIN's platform."},{t:"Sovereign Trust",d:"HUMAIN has been granted access no foreign competitor could be given."},{t:"Expanding Invitation",d:"Other departments are asking for access because of what the first achieved."}].map((c2,i)=><div key={i} style={{...CS,padding:"18px 22px",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}><div style={{width:24,height:24,borderRadius:6,background:"rgba(0,135,159,0.06)",display:"flex",alignItems:"center",justifyContent:"center",...M,fontSize:10,color:"#00879F"}}>{i+1}</div><span style={{fontSize:14,fontWeight:700}}>{c2.t}</span></div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,paddingLeft:34}}>{c2.d}</div></div>)}
+    <div style={{...M,fontSize:11,color:"var(--muted)",textAlign:"center",marginTop:12}}>All four must be true simultaneously.</div>
+  </div>
+</div>);
     case"engage":return(<div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>ENGAGEMENT OS</span></div>
-        <div style={{...T,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.15,marginBottom:6}}>Win every meeting.<br/>Not with products.<br/>With <span style={{color:"#00D49C"}}>intelligence</span>.</div>
-        <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7,maxWidth:540,marginBottom:28}}>Sector-specific entry scripts, conversation flows, objection handling, follow-up architecture, and the complete tactical toolkit for closing the execution gap.</div>
-        <div style={{height:1,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",marginBottom:32}}/>
-
-        {/* Sector Entry */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>01 — SECTOR ENTRY GUIDES</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>What to say when you walk in the door</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>Sector-specific entry scripts, conversation flows, and proof frameworks.</div>
-          {[{s:"Government",fear:"Losing the AI narrative to foreign vendors while 193 entities still don't share data.",want:"Replicate digital transformation success with AI at national scale.",entry:"Trusted connective tissue. Name the execution gap: data that doesn't move, pilots that don't scale.",c:"#00879F"},
-            {s:"Oil & Gas",fear:"Two clocks running: proving strategic relevance while extracting asset value before the window narrows.",want:"AI teams that understand oilfields, not just models. OT/IT integration that works.",entry:"Speak oilfield, not algorithm. Lead with operational understanding. Proof in oilfield language.",c:"#FFB800"},
-            {s:"Healthcare",fear:"Too fast causes clinical harm. Too slow misses Vision 2030. Both fears rational, both active simultaneously.",want:"Arabic clinical AI, trustworthy EHR data, governance frameworks.",entry:"Start with data quality truth. Don't arrive with AI demos. Arrive with a data readiness framework.",c:"#00D49C"},
-            {s:"Private Sector",fear:"CEO announced AI-first. Organization can't execute. 81% claim AI-first, only 27.6% show actual adoption.",want:"Close the gap between boardroom ambition and operational readiness.",entry:"An honest diagnostic question, not a pitch. Fix data first, sell AI second.",c:"#D0F94A"},
-            {s:"Sport",fear:"Historic investment, world watching if it lasts beyond star signings. No data connective tissue anywhere.",want:"Ecosystem data fabric and fan intelligence. 2034 World Cup is a hard deadline.",entry:"Name the legitimacy tension directly. Sovereign intelligence that connects the ecosystem.",c:"#FF6B6B"}
-          ].map(s=><div key={s.s} style={{...CS,padding:"18px 22px",marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:8,height:8,borderRadius:4,background:s.c}}/><span style={{fontSize:15,fontWeight:700}}>{s.s}</span></div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-              <div><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:4}}>WHAT THEY FEAR</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.fear}</div></div>
-              <div><div style={{...M,fontSize:9,color:"#FFB800",marginBottom:4}}>WHAT THEY WANT</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.want}</div></div>
-              <div><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:4}}>HUMAIN'S ENTRY</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.entry}</div></div>
-            </div>
-          </div>)}
-        </div>
-
-        {/* Meeting Toolkit */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>02 — MEETING TOOLKIT</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>48-Hour Meeting Architecture</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The door opens easily. What keeps it open is disciplined architecture applied before, during, and after every meeting.</div>
-          {[{t:"48 HOURS BEFORE",items:["Research client's latest announcements using AI brief tool","Map all attendees on LinkedIn: seniority, background, decision role","Prepare one Challenger-style sector insight that reframes their thinking","Load sector belief statement: know the fear, the ambition, the gap by memory"],c:"#00879F"},
-            {t:"2 HOURS BEFORE",items:["Check overnight news about client organization or sector","Decide primary next-step ask AND fallback if refused","Know which HUMAIN stack layer is the lowest-friction entry"],c:"#FFB800"},
-            {t:"IN THE MEETING",items:["Lead with sector insight, not product pitch","43:57 talk-to-listen ratio","FINAL 5 MIN: Book calendar invite before leaving the room"],c:"#00D49C"},
-            {t:"WITHIN 2 HOURS AFTER",items:["Follow-up email under 200 words with one specific insight","WhatsApp referencing the email and a specific topic discussed","Log meeting signals in CRM based on observables only"],c:"#D0F94A"}
-          ].map(phase=><div key={phase.t} style={{borderLeft:"3px solid "+phase.c,padding:"14px 20px",background:phase.c+"06",borderRadius:"0 10px 10px 0",marginBottom:10}}>
-            <div style={{...M,fontSize:9,letterSpacing:"0.12em",color:phase.c,marginBottom:8}}>{phase.t}</div>
-            {phase.items.map((item,j)=><div key={j} style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,padding:"3px 0",display:"flex",gap:8}}><span style={{color:phase.c,flexShrink:0}}>—</span>{item}</div>)}
-          </div>)}
-        </div>
-
-        {/* Signal Decoder */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>03 — SAUDI SIGNAL DECODER</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Reading the room</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-            <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:8}}>GENUINE BUYING INTENT</div>
-              {["WhatsApp connection + active follow-up by client","Introduction to additional senior stakeholders","Specific questions about PDPL, data localization","Social invite (dinner, istiraha) = major trust"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
-            <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#FFB800",marginBottom:8}}>WATCH CAREFULLY</div>
-              {["'We will study this' without who, when, or what","Meeting stayed entirely social after 60+ minutes","Only junior staff, no path to senior decision-makers","Enthusiastic agreement with everything, no hard questions"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
-            <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:8}}>LIKELY NO DECISION</div>
-              {["No follow-up after 10+ days despite agreed next step","Senior attendee distracted, left early, never engaged","Three+ touchpoints with no progression signal"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
-          </div>
-        </div>
-
-        {/* Cross-Sell */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>04 — CROSS-SELL LOGIC</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>Clients pull HUMAIN forward</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The cross-sell motion is not a sales process. It is a consequence of being embedded at the right depth. Clients pull HUMAIN forward. We never push.</div>
-          {[{t:"Visible Result Trigger",d:"Client achieves a measurable outcome. Leadership asks what else is possible.",arrow:"Core → Compute"},{t:"Trust Threshold Trigger",d:"Relationship deep enough for honest conversation about a new problem.",arrow:"Compute → Intelligence"},{t:"Client Pull Trigger",d:"Client identifies a new problem and calls HUMAIN first.",arrow:"Intelligence → Shift"},{t:"HUMAIN Sees First Trigger",d:"HUMAIN identifies a gap before the client names it. Presenting this insight first builds deepest trust.",arrow:"Shift → Expansion"}
-          ].map((t,i)=><div key={i} style={{display:"flex",gap:14,padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
-            <div style={{width:32,height:32,borderRadius:8,background:"rgba(0,135,159,0.06)",display:"flex",alignItems:"center",justifyContent:"center",...M,fontSize:10,color:"#00879F",flexShrink:0}}>{i+1}</div>
-            <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>{t.t}</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{t.d}</div></div>
-            <span style={{...M,fontSize:9,color:"#00D49C",flexShrink:0,marginTop:4}}>{t.arrow}</span>
-          </div>)}
-        </div>
-
-        {/* Advisory vs Vendor */}
-        <div style={{marginBottom:40}}>
-          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>05 — ADVISORY POSITIONING</div>
-          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Not a vendor. A sovereign partner.</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-            <div style={{...CS,padding:"18px 22px",opacity:0.5}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:10}}>TECHNOLOGY VENDOR</div>
-              {["Sells what it has already built","Measures success in licenses and deployments","Leaves after implementation is complete","Knows the technology, not the business","Replicable by any better-funded competitor"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0"}}>— {s}</div>)}</div>
-            <div style={{...CS,padding:"18px 22px",border:"1px solid rgba(0,135,159,0.2)"}}><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:10}}>HUMAIN AS SOVEREIGN ADVISER</div>
-              {["Enters through the client's deepest sector fear","Measures success in the client's own P&L language","Stays embedded and builds Saudi capability inside the client","Knows the sector, the operation, and the Arabic context","Irreplaceable because intelligence compounds with every engagement"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0"}}>— {s}</div>)}</div>
-          </div>
-        </div>
+  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>ENGAGEMENT OS</span></div>
+  <div style={{...T,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.15,marginBottom:6}}>Win every meeting.<br/>Not with products.<br/>With <span style={{color:"#00D49C"}}>intelligence</span>.</div>
+  <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7,maxWidth:540,marginBottom:28}}>Sector-specific entry scripts, conversation flows, objection handling, follow-up architecture, and the complete tactical toolkit.</div>
+  <div style={{height:1,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",marginBottom:32}}/>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>01 — SECTOR ENTRY GUIDES</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>What to say when you walk in the door</div>
+    {[{s:"Government",fear:"Losing the AI narrative while 193 entities don't share data.",want:"Replicate digital transformation success with AI at national scale.",entry:"Trusted connective tissue. Name the execution gap precisely.",c:"#00879F"},{s:"Oil & Gas",fear:"Two clocks: proving relevance while extracting asset value.",want:"AI teams that understand oilfields, OT/IT integration.",entry:"Speak oilfield, not algorithm. Proof in operational language.",c:"#FFB800"},{s:"Healthcare",fear:"Too fast causes harm. Too slow misses Vision 2030.",want:"Arabic clinical AI, trustworthy EHR data, governance.",entry:"Start with data quality truth. Arrive with a readiness framework.",c:"#00D49C"},{s:"Private Sector",fear:"CEO announced AI-first. Org can't execute. 81% claim, 27% adopt.",want:"Close the gap between boardroom ambition and operational readiness.",entry:"Honest diagnostic, not a pitch. Fix data first, sell AI second.",c:"#D0F94A"},{s:"Sport",fear:"Historic investment, world watching if it lasts beyond star signings.",want:"Ecosystem data fabric. 2034 World Cup is a hard deadline.",entry:"Name the legitimacy tension. Sovereign intelligence connecting the ecosystem.",c:"#FF6B6B"}].map(s=><div key={s.s} style={{...CS,padding:"18px 22px",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:8,height:8,borderRadius:4,background:s.c}}/><span style={{fontSize:15,fontWeight:700}}>{s.s}</span></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><div><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:4}}>FEAR</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.fear}</div></div><div><div style={{...M,fontSize:9,color:"#FFB800",marginBottom:4}}>WANT</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.want}</div></div><div><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:4}}>ENTRY</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.entry}</div></div></div></div>)}
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>02 — MEETING TOOLKIT</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>48-Hour Meeting Architecture</div>
+    {[{t:"48 HOURS BEFORE",items:["Research client announcements using AI brief tool","Map all attendees: seniority, background, decision role","Prepare one Challenger-style sector insight","Load sector belief statement by memory"],c:"#00879F"},{t:"2 HOURS BEFORE",items:["Check overnight news about client","Decide primary next-step ask AND fallback","Know which HUMAIN stack layer is lowest friction"],c:"#FFB800"},{t:"IN THE MEETING",items:["Lead with sector insight, not product pitch","43:57 talk-to-listen ratio","FINAL 5 MIN: Book calendar invite before leaving"],c:"#00D49C"},{t:"WITHIN 2 HOURS AFTER",items:["Follow-up email under 200 words, one specific insight","WhatsApp referencing email and a specific topic","Log meeting signals in CRM, observables only"],c:"#D0F94A"}].map(p=><div key={p.t} style={{borderLeft:"3px solid "+p.c,padding:"14px 20px",background:p.c+"06",borderRadius:"0 10px 10px 0",marginBottom:10}}><div style={{...M,fontSize:9,letterSpacing:"0.12em",color:p.c,marginBottom:8}}>{p.t}</div>{p.items.map((item,j)=><div key={j} style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,padding:"3px 0",display:"flex",gap:8}}><span style={{color:p.c,flexShrink:0}}>—</span><span>{item}</span></div>)}</div>)}
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>03 — SIGNAL DECODER</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Reading the room</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+      <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:8}}>BUYING INTENT</div>{["WhatsApp connection + client follow-up","Introduction to senior stakeholders","PDPL / data localization questions","Social invite = major trust milestone"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
+      <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#FFB800",marginBottom:8}}>WATCH CAREFULLY</div>{["'We will study this' — no who/when/what","Meeting stayed social after 60+ minutes","Only junior staff, no senior path","Enthusiastic agreement, no hard questions"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
+      <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:8}}>NO DECISION</div>{["No follow-up after 10+ days","Senior attendee distracted, left early","Three+ touchpoints, no progression"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
+    </div>
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>04 — CROSS-SELL LOGIC</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Clients pull HUMAIN forward</div>
+    {[{t:"Visible Result Trigger",d:"Client achieves measurable outcome. Leadership asks what else is possible.",a:"Core → Compute"},{t:"Trust Threshold Trigger",d:"Relationship deep enough for honest conversation about a new problem.",a:"Compute → Intelligence"},{t:"Client Pull Trigger",d:"Client identifies new problem and calls HUMAIN first.",a:"Intelligence → Shift"},{t:"HUMAIN Sees First",d:"HUMAIN identifies a gap before the client names it.",a:"Shift → Expansion"}].map((t,i)=><div key={i} style={{display:"flex",gap:14,padding:"14px 0",borderBottom:"1px solid var(--border)"}}><div style={{width:32,height:32,borderRadius:8,background:"rgba(0,135,159,0.06)",display:"flex",alignItems:"center",justifyContent:"center",...M,fontSize:10,color:"#00879F",flexShrink:0}}>{i+1}</div><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>{t.t}</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{t.d}</div></div><span style={{...M,fontSize:9,color:"#00D49C",flexShrink:0,marginTop:4}}>{t.a}</span></div>)}
+  </div>
+  <div style={{marginBottom:40}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>05 — ADVISORY POSITIONING</div>
+    <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Not a vendor. A sovereign partner.</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+      <div style={{...CS,padding:"18px 22px",opacity:0.5}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:10}}>TECHNOLOGY VENDOR</div>{["Sells what it has already built","Measures success in licenses","Leaves after implementation","Knows technology, not the business","Replicable by any better-funded competitor"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0"}}>— {s}</div>)}</div>
+      <div style={{...CS,padding:"18px 22px",border:"1px solid rgba(0,135,159,0.2)"}}><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:10}}>HUMAIN AS SOVEREIGN ADVISER</div>{["Enters through the client's deepest sector fear","Measures success in the client's P&L language","Stays embedded, builds Saudi capability","Knows sector, operation, and Arabic context","Irreplaceable — intelligence compounds"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0"}}>— {s}</div>)}</div>
+    </div>
+  </div>
+</div>);
+    case"setup":return(<div>
+        <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>Database Setup</div>
+        <div style={{fontSize:13,color:"var(--muted)",marginBottom:20}}>Supabase tables powering COMPASS. Run these in the SQL Editor if tables are missing.</div>
+        {[{name:"deals",sql:"CREATE TABLE IF NOT EXISTS deals (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, client_name text, sector text, stage text DEFAULT 'Recognition', status text DEFAULT 'Active', expected_value numeric DEFAULT 0, probability int DEFAULT 0, weighted_value numeric DEFAULT 0, deal_score int DEFAULT 0, contact_name text, next_step text, next_meeting date, notes text, tags text, assigned_name text, created_by uuid, updated_at timestamptz DEFAULT now(), created_at timestamptz DEFAULT now());"},
+          {name:"deal_events",sql:"CREATE TABLE IF NOT EXISTS deal_events (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, deal_id uuid REFERENCES deals(id), event_type text, description text, created_at timestamptz DEFAULT now());"},
+          {name:"briefs",sql:"CREATE TABLE IF NOT EXISTS briefs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, client_name text, sector text, meeting_type text, context_data text, brief_content text, generated_by text, created_at timestamptz DEFAULT now());"},
+          {name:"debriefs",sql:"CREATE TABLE IF NOT EXISTS debriefs (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, client_name text, sector text, deal_id uuid, confirmed text, challenged text, new_signal text, next_step text, created_by text, created_at timestamptz DEFAULT now());"},
+          {name:"campaigns",sql:"CREATE TABLE IF NOT EXISTS campaigns (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, name text, type text, sector text, status text DEFAULT 'Planned', budget_sar numeric, target_leads int, start_date date, end_date date, description text, objective text, created_by uuid, updated_at timestamptz DEFAULT now(), created_at timestamptz DEFAULT now());"},
+          {name:"leads",sql:"CREATE TABLE IF NOT EXISTS leads (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, name text, organization text, title text, sector text, source_type text, source_campaign_id uuid, status text DEFAULT 'Cold', contact_email text, notes text, converted_deal_id uuid, converted_at timestamptz, owner_id uuid, created_by uuid, updated_at timestamptz DEFAULT now(), created_at timestamptz DEFAULT now());"},
+          {name:"content_assets",sql:"CREATE TABLE IF NOT EXISTS content_assets (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, title text, asset_type text, sector text, status text DEFAULT 'Draft', description text, created_by uuid, updated_at timestamptz DEFAULT now(), created_at timestamptz DEFAULT now());"},
+          {name:"agent_queue",sql:"CREATE TABLE IF NOT EXISTS agent_queue (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, agent_name text, action_type text, deal_id uuid, title text, description text, suggested_action text, draft_content text, priority text DEFAULT 'medium', status text DEFAULT 'pending', created_at timestamptz DEFAULT now());"},
+          {name:"profiles",sql:"CREATE TABLE IF NOT EXISTS profiles (id uuid PRIMARY KEY, email text, full_name text, role text DEFAULT 'member', team text, last_seen timestamptz);"},
+          {name:"access_requests",sql:"CREATE TABLE IF NOT EXISTS access_requests (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, email text, full_name text, department text, status text DEFAULT 'Pending', requested_at timestamptz DEFAULT now());"},
+          {name:"system_config",sql:"CREATE TABLE IF NOT EXISTS system_config (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, config_key text UNIQUE, config_value text);"}
+        ].map(t=><div key={t.name} style={{...CS,marginBottom:8}}>
+          <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid var(--border)"}}><span style={{...M,fontSize:11,fontWeight:600,color:"#00879F"}}>{t.name}</span><button onClick={()=>{navigator.clipboard.writeText(t.sql);}} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:4,border:"1px solid var(--border)",background:"none",color:"var(--muted)",cursor:"pointer"}}>Copy SQL</button></div>
+          <div style={{padding:"12px 16px",background:dark?"#0D1B1E":"var(--panel2)",fontFamily:"'DM Mono',monospace",fontSize:11,color:dark?"#a8d8a8":"var(--sub)",lineHeight:1.6,whiteSpace:"pre-wrap",overflowX:"auto"}}>{t.sql}</div>
+        </div>)}
       </div>);
     default:return<PH label={TABS.find(t=>t.id===tab)?.label||tab} icon={TABS.find(t=>t.id===tab)?.icon||Home}/>;
   }};
@@ -875,7 +861,7 @@ export default function App(){
           <button onClick={()=>sIntel(!intel)} style={{width:sb?"100%":40,height:36,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:intel?"rgba(0,212,156,0.08)":"transparent",border:"none",cursor:"pointer",color:intel?"#00D49C":"var(--muted)",padding:sb?"0 10px":0,transition:"all .18s"}}
             onMouseEnter={e=>{if(!intel)e.currentTarget.style.color="#00D49C";}}
             onMouseLeave={e=>{if(!intel)e.currentTarget.style.color="var(--muted)";}}>
-            <Activity size={16} strokeWidth={1.5}/>{sb&&<span style={{fontSize:12,fontWeight:500,color:intel?"#00D49C":"#4A5E6E"}}>Daily Intel</span>}
+            <div style={{position:"relative"}}><Activity size={16} strokeWidth={1.5}/><div style={{position:"absolute",top:-2,right:-2,width:6,height:6,borderRadius:3,background:"#00D49C",animation:"pulse 2s ease-in-out infinite"}}/></div>{sb&&<span style={{fontSize:12,fontWeight:500,color:intel?"#00D49C":"#4A5E6E"}}>Daily Intel</span>}
           </button>
           {/* Theme */}
           <div style={{display:"flex",justifyContent:"center",gap:2}}>
@@ -903,14 +889,41 @@ export default function App(){
     <main style={{flex:1,marginLeft:sb?230:56,transition:"margin-left .3s cubic-bezier(0.16,1,0.3,1)"}}>
       <div style={{position:"sticky",top:0,zIndex:50,background:"var(--panel)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)"}}>
         <div style={{position:"relative",flex:1,maxWidth:360}}><Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)"}}/><input value={search} onChange={e=>{sSr(e.target.value);sSrO(true);}} onFocus={()=>sSrO(true)} onBlur={()=>setTimeout(()=>sSrO(false),200)} placeholder="Search deals..." style={{...IP,paddingLeft:32,fontSize:12}}/>{srO&&search&&sr.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:10,marginTop:4,boxShadow:"0 8px 24px rgba(0,0,0,0.1)",zIndex:60,overflow:"hidden",maxHeight:400,overflowY:"auto"}}>{sr.map((r,i)=><div key={i} onMouseDown={()=>{if(r.deal)sM({deal:r.deal});sSr("");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid var(--border)",fontSize:13,display:"flex",alignItems:"center",gap:10}}><span style={{...M,fontSize:9,padding:"2px 6px",borderRadius:3,background:r.type==="Deal"?"rgba(0,135,159,0.06)":r.type==="Lead"?"rgba(0,212,156,0.06)":"rgba(255,184,0,0.06)",color:r.type==="Deal"?"#00879F":r.type==="Lead"?"#00D49C":"#FFB800",flexShrink:0}}>{r.type}</span><span style={{fontWeight:600,flex:1}}>{r.name}</span><span style={{...M,fontSize:10,color:"var(--muted)"}}>{r.sub}</span></div>)}</div>}</div>
-        <div style={{...M,fontSize:9,color:"#FFB800",letterSpacing:"0.1em",padding:"3px 8px",background:"rgba(255,184,0,0.05)",border:"1px solid rgba(255,184,0,0.08)",borderRadius:4}}>STAGING</div>
+        <button onClick={()=>sTourStep(0)} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,padding:"5px 8px",cursor:"pointer",color:"var(--muted)"}} title="Guided Tour"><BookOpen size={14}/></button><div style={{display:"flex",alignItems:"center",gap:8}}>{isA&&<button onClick={()=>sNotifOpen(!notifOpen)} style={{position:"relative",background:"none",border:"1px solid var(--border)",borderRadius:6,padding:"5px 8px",cursor:"pointer",color:"var(--muted)"}}><Bell size={14}/>{notif>0&&<span style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:7,background:"#FF4B4B",color:"#fff",fontSize:8,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}</button>}<div style={{...M,fontSize:9,color:"#FFB800",letterSpacing:"0.1em",padding:"3px 8px",background:"rgba(255,184,0,0.05)",border:"1px solid rgba(255,184,0,0.08)",borderRadius:4}}>STAGING</div></div>
       </div>
       <div style={{padding:"24px 28px 80px",maxWidth:1100}}>{renderTab()}</div>
     </main>
+    <NotifPanel open={notifOpen} onClose={()=>sNotifOpen(false)} requests={accessReqs} token={tk} onRefresh={ld}/>
     <DailyIntel deals={deals} profile={profile} open={intel} onClose={()=>sIntel(false)}/>
     
     
     {toast&&<div style={{position:"fixed",top:20,right:20,background:toast.type==="error"?"#FF4B4B":"#00879F",color:"#fff",padding:"12px 20px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",zIndex:3000,fontSize:13,fontWeight:500,display:"flex",alignItems:"center",gap:8,animation:"fadeIn .2s"}}>{toast.msg}<button onClick={()=>sToast(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.7)",cursor:"pointer",marginLeft:8}}><X size={14}/></button></div>}
+    
+    {tourStep>=0&&(()=>{const steps=[
+      {title:"Welcome to COMPASS",desc:"Your sovereign intelligence layer. Let's take a quick tour of what's here.",tab:"home"},
+      {title:"AI Chat",desc:"Ask about deals, pipeline, strategy. Mention a client meeting and COMPASS will offer to register the deal automatically.",tab:"home"},
+      {title:"CRM Pipeline",desc:"Your 5-stage pipeline kanban. Click any deal to view, edit, or track activity. Use filters to slice by sector, stage, or status.",tab:"crm"},
+      {title:"Dashboard",desc:"Pipeline health at a glance. Stage breakdown, sector coverage, stalled deals alert. Admin users see the CEO Executive Summary.",tab:"dashboard"},
+      {title:"12 Agents",desc:"Sovereign intelligence agents that analyze your pipeline. Run individually or all at once. Logic agents score deals and flag issues. AI agents provide strategic insights.",tab:"agents"},
+      {title:"Meeting Briefs",desc:"Select a deal, fill in context, generate an AI brief. 6 sections: client context, belief statement, conversation flow, questions, objection prep, next step. Saves automatically.",tab:"meetings"},
+      {title:"Marketing",desc:"Campaigns, leads, and content assets. Full CRUD — create, edit, delete. Calendar view shows campaign timeline.",tab:"marketing"},
+      {title:"The Framework",desc:"Sector beliefs, 5-stage progression, 8 principles, irreversibility conditions. The operating system of HUMAIN's client relationships.",tab:"framework"},
+      {title:"Engagement OS",desc:"Sector entry scripts, meeting toolkit, signal decoder, cross-sell logic, advisory positioning. Everything for every meeting.",tab:"engage"},
+      {title:"Tour Complete",desc:"You're ready. COMPASS learns from every deal, every debrief, every meeting. The intelligence compounds.",tab:"home"},
+    ];const step=steps[tourStep]||steps[0];return(
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000}} onClick={()=>sTourStep(-1)}>
+        <div style={{background:"var(--panel)",borderRadius:16,padding:"28px 32px",maxWidth:420,textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+          <div style={{...M,fontSize:9,color:"#00879F",letterSpacing:"0.12em",marginBottom:8}}>STEP {tourStep+1} OF {steps.length}</div>
+          <div style={{...T,fontSize:20,fontWeight:800,marginBottom:8}}>{step.title}</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>{step.desc}</div>
+          <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+            {tourStep>0&&<button onClick={()=>{sTourStep(tourStep-1);sT(steps[tourStep-1].tab);sChatActive(false);}} style={{...BG,padding:"8px 20px"}}>Back</button>}
+            {tourStep<steps.length-1?<button onClick={()=>{sTourStep(tourStep+1);sT(steps[tourStep+1].tab);sChatActive(false);}} style={{...BP,padding:"8px 24px"}}>Next</button>
+            :<button onClick={()=>sTourStep(-1)} style={{...BP,padding:"8px 24px"}}>Finish</button>}
+          </div>
+          <div style={{display:"flex",gap:4,justifyContent:"center",marginTop:14}}>{steps.map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:3,background:i===tourStep?"#00879F":i<tourStep?"#00D49C":"var(--border)"}}/>)}</div>
+        </div>
+      </div>);})()}
     {idleWarn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
       <div style={{background:"var(--panel)",borderRadius:16,padding:"32px 36px",textAlign:"center",maxWidth:380}}>
         <div style={{...T,fontSize:18,fontWeight:800,marginBottom:8}}>Session Timeout</div>
