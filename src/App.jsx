@@ -587,6 +587,20 @@ function DailyIntel({deals,profile,open,onClose}){
     </div>
   </div>);
 }
+
+function FwAcc({b}){const[open,setOpen]=useState(false);return(
+  <div style={{...CS,marginBottom:8,cursor:"pointer"}} onClick={()=>setOpen(!open)}>
+    <div style={{padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
+      <div style={{width:28,height:28,borderRadius:8,background:b.c+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:b.c,flexShrink:0}}>◈</div>
+      <div style={{flex:1}}><span style={{fontSize:14,fontWeight:600}}>{b.s}</span><span style={{...M,fontSize:11,color:"var(--muted)",marginLeft:8}}>{b.sub}</span></div>
+      <span style={{...M,fontSize:10,color:"var(--muted)",transform:open?"rotate(180deg)":"none",transition:"transform .3s"}}>▼</span>
+    </div>
+    {open&&<div style={{padding:"0 20px 18px",borderTop:"1px solid var(--border)"}}>
+      <div style={{marginTop:14}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:4}}>WHAT THEY FEAR</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:12}}>{b.fear}</div></div>
+      <div><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:4}}>OUR BELIEF</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>{b.belief}</div></div>
+    </div>}
+  </div>);
+}
 const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...T,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...M,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — COMING SOON</div></div>;
 
 export default function App(){
@@ -661,8 +675,155 @@ export default function App(){
     case"meetings":return<Meetings deals={deals} profile={profile} token={tk} elKey={elKey} claudeKey={claudeKey}/>;
     case"marketing":return<Marketing token={tk}/>;
     case"admin":return<Admin token={tk}/>;
-    case"framework":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>The Framework</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Sovereign AI engagement principles and sector beliefs</div></div><div style={{...CS,padding:20}}><div style={{borderLeft:"3px solid #00D49C",padding:"14px 20px",background:"rgba(0,212,156,0.012)",borderRadius:"0 10px 10px 0",marginBottom:14}}><div style={{...M,fontSize:9,letterSpacing:"0.15em",color:"#00D49C",marginBottom:6}}>MASTER THREAD</div><div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7}}>Every sector has the same execution gap between sovereign ambition and operational reality. HUMAIN closes that gap. Not as a vendor. Not as a consultant. As the sovereign intelligence partner that stays, builds, and compounds.</div></div>{SECTORS.map(s=><div key={s} style={{padding:"12px 0",borderBottom:"1px solid var(--border)"}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:XC[s],marginBottom:4}}>{s.toUpperCase()}</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>Sector belief statement and engagement principles for {s}. Full content available in production COMPASS.</div></div>)}</div></div>);
-    case"engage":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Engagement OS</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Tactical toolkit for every client interaction</div></div><div style={{...CS,padding:20}}>{["Sector Entry Scripts","Product-to-Sector Mapper","Meeting Toolkit","Q&A Bank","48hr Tactics","Cross-Sell Logic","Demand Creation","Advisory Positioning","Capability Architecture"].map((s,i)=><div key={i} style={{padding:"12px 0",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:14,fontWeight:600}}>{s}</div><div style={{...M,fontSize:10,color:"var(--muted)",marginTop:2}}>Full content in production COMPASS</div></div><BookOpen size={14} style={{color:"var(--muted)"}}/></div>)}</div></div>);
+    case"framework":return(<div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>THE FRAMEWORK</span></div>
+        <div style={{...T,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.15,marginBottom:6}}>We don't sell AI.<br/>We close the gap between<br/>ambition and <span style={{color:"#00D49C"}}>execution</span>.</div>
+        <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7,maxWidth:540,marginBottom:28}}>Every sector in Saudi Arabia shares the same structural problem. Leadership has announced a direction. The organisation has not caught up. Data does not move. Pilots do not become products.</div>
+        <div style={{height:1,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",marginBottom:32}}/>
+
+        {/* Master Thread */}
+        <div style={{borderLeft:"3px solid #00D49C",padding:"20px 28px",background:"rgba(0,212,156,0.012)",borderRadius:"0 12px 12px 0",marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.18em",color:"#00D49C",marginBottom:6}}>MASTER THREAD</div>
+          <div style={{fontSize:14.5,color:"var(--sub)",lineHeight:1.75}}>Every sector has the same execution gap between sovereign ambition and operational reality. HUMAIN closes that gap. Not as a vendor. Not as a consultant. As the sovereign intelligence partner that stays, builds, and compounds.</div>
+        </div>
+
+        {/* Sector Beliefs */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 01</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>Sector Belief Statements</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>Five convictions built from real sector intelligence. These are not use cases. They are what HUMAIN holds as true going into every room.</div>
+          {[{s:"Government",sub:"Cross-ministry orchestration",fear:"Losing the AI narrative while the execution machinery between 193 entities stays broken beneath world-class platform appearances.",belief:"The government proved it can transform at scale. Digital transformation is the reference. Now they need to repeat it with AI. The blockers are structural. HUMAIN's role is trusted connective tissue.",c:"#00879F"},
+            {s:"Oil & Gas",sub:"OT/IT + domain expertise",fear:"Becoming strategically irrelevant before proving O&G companies are technology companies. Two clocks. One window.",belief:"Leadership manages two simultaneous clocks: proving relevance and extracting asset value. The blockers are human and cultural: OT/IT that won't integrate, AI teams that don't understand oilfields.",c:"#FFB800"},
+            {s:"Healthcare",sub:"Arabic clinical AI",fear:"Deploying AI that causes clinical harm, or losing Vision 2030 momentum during the MOH-to-clusters structural shift.",belief:"Healthcare leadership navigates two fears simultaneously. Every dimension is underserved: broken EHR data, no Arabic clinical AI, clinicians who won't change, governance unwritten. HUMAIN builds the full stack.",c:"#00D49C"},
+            {s:"Private Sector",sub:"Data foundation first",fear:"PIF competitors, Saudization mandates, CEO promises the org cannot execute, and talent drain to giga-projects.",belief:"The most exposed sector, least equipped to absorb pressure. Blockers run deep: legacy infrastructure, no AI talent pipeline, decision structures too centralized for AI speed. HUMAIN is the honest diagnostic.",c:"#D0F94A"},
+            {s:"Sport",sub:"Ecosystem data fabric",fear:"Spending billions and producing nothing sustainable. Spectacle narrative cementing before substance has time to develop.",belief:"Saudi sport operates under the most visible accountability. The answer is not more investment. It is intelligence. The connective tissue that has never existed between clubs, federations, venues, academies.",c:"#FF6B6B"}
+          ].map(b=><FwAcc key={b.s} b={b}/>)}
+        </div>
+
+        {/* 5 Stages */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 02</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Five-Stage Client Progression</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The stages are not milestones to be declared. They are observed states. A client cannot be pushed to the next stage.</div>
+          {[{n:"Recognition",d:"Client feels understood. Our belief matched their reality. They want to continue the conversation.",c:"#8A9BAA"},
+            {n:"Proof",d:"First visible, attributable result delivered. Client has something to show internally. Trust is earned.",c:"#FFB800"},
+            {n:"Integration",d:"HUMAIN is embedded in a workflow. Removing us now costs real effort. Dependency is forming.",c:"#00879F"},
+            {n:"Dependency",d:"Client cannot operate the relevant function without HUMAIN. Saudi talent is built on our systems.",c:"#00D49C"},
+            {n:"Expansion",d:"Client pulls HUMAIN into adjacent problems. We are invited into rooms never originally scoped.",c:"#6B8C00"}
+          ].map((s,i)=><div key={s.n} style={{display:"flex",gap:16,padding:"16px 0",borderBottom:"1px solid var(--border)"}}>
+            <div style={{width:36,height:36,borderRadius:10,background:s.c+"15",display:"flex",alignItems:"center",justifyContent:"center",...T,fontSize:16,fontWeight:800,color:s.c,flexShrink:0}}>{i+1}</div>
+            <div><div style={{fontSize:15,fontWeight:700,marginBottom:3}}>{s.n}</div><div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>{s.d}</div></div>
+          </div>)}
+        </div>
+
+        {/* 8 Principles */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 03</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Eight Engagement Principles</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The operating system of HUMAIN's client relationships. Violating any one collapses trust that takes months to rebuild.</div>
+          {["Lead with the execution gap, never the product","The belief statement is the key, not the demo","Every meeting ends with an advance, not a continuation","Observable signals only. No assumptions.","The debrief is mandatory, not optional","Never create urgency that does not exist","The WhatsApp message from the CEO is the highest buying signal","Sovereignty is not a feature. It is the foundation."
+          ].map((p,i)=><div key={i} style={{padding:"14px 18px",background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:10,marginBottom:6,display:"flex",gap:12,alignItems:"flex-start"}}>
+            <span style={{...M,fontSize:10,color:"#00879F",flexShrink:0,marginTop:2}}>0{i+1}</span>
+            <span style={{fontSize:14,fontWeight:600,lineHeight:1.5}}>{p}</span>
+          </div>)}
+        </div>
+
+        {/* Irreversibility */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>SECTION 04</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>The Four Conditions of Irreversibility</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The goal is not a signed contract. The goal is a client who cannot imagine operating without HUMAIN.</div>
+          {[{t:"Workflow Dependency",d:"HUMAIN is embedded in a production workflow that runs daily. Removing it would require rebuilding from scratch."},
+            {t:"Capability Dependency",d:"The client's team has built skills on HUMAIN's platform. Leaving would mean losing capabilities they have already internalised."},
+            {t:"Sovereign Trust",d:"HUMAIN has been granted access to data or decisions that no foreign competitor could be given."},
+            {t:"Expanding Invitation",d:"Other departments or entities are asking for access because of what the first department achieved."}
+          ].map((c2,i)=><div key={i} style={{...CS,padding:"18px 22px",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}><div style={{width:24,height:24,borderRadius:6,background:"rgba(0,135,159,0.06)",display:"flex",alignItems:"center",justifyContent:"center",...M,fontSize:10,color:"#00879F"}}>{i+1}</div><span style={{fontSize:14,fontWeight:700}}>{c2.t}</span></div>
+            <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,paddingLeft:34}}>{c2.d}</div>
+          </div>)}
+          <div style={{...M,fontSize:11,color:"var(--muted)",textAlign:"center",marginTop:12}}>All four must be true simultaneously. Three out of four is a strong relationship. Four out of four is irreversible attachment.</div>
+        </div>
+      </div>);
+    case"engage":return(<div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>ENGAGEMENT OS</span></div>
+        <div style={{...T,fontSize:28,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.15,marginBottom:6}}>Win every meeting.<br/>Not with products.<br/>With <span style={{color:"#00D49C"}}>intelligence</span>.</div>
+        <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.7,maxWidth:540,marginBottom:28}}>Sector-specific entry scripts, conversation flows, objection handling, follow-up architecture, and the complete tactical toolkit for closing the execution gap.</div>
+        <div style={{height:1,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",marginBottom:32}}/>
+
+        {/* Sector Entry */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>01 — SECTOR ENTRY GUIDES</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>What to say when you walk in the door</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>Sector-specific entry scripts, conversation flows, and proof frameworks.</div>
+          {[{s:"Government",fear:"Losing the AI narrative to foreign vendors while 193 entities still don't share data.",want:"Replicate digital transformation success with AI at national scale.",entry:"Trusted connective tissue. Name the execution gap: data that doesn't move, pilots that don't scale.",c:"#00879F"},
+            {s:"Oil & Gas",fear:"Two clocks running: proving strategic relevance while extracting asset value before the window narrows.",want:"AI teams that understand oilfields, not just models. OT/IT integration that works.",entry:"Speak oilfield, not algorithm. Lead with operational understanding. Proof in oilfield language.",c:"#FFB800"},
+            {s:"Healthcare",fear:"Too fast causes clinical harm. Too slow misses Vision 2030. Both fears rational, both active simultaneously.",want:"Arabic clinical AI, trustworthy EHR data, governance frameworks.",entry:"Start with data quality truth. Don't arrive with AI demos. Arrive with a data readiness framework.",c:"#00D49C"},
+            {s:"Private Sector",fear:"CEO announced AI-first. Organization can't execute. 81% claim AI-first, only 27.6% show actual adoption.",want:"Close the gap between boardroom ambition and operational readiness.",entry:"An honest diagnostic question, not a pitch. Fix data first, sell AI second.",c:"#D0F94A"},
+            {s:"Sport",fear:"Historic investment, world watching if it lasts beyond star signings. No data connective tissue anywhere.",want:"Ecosystem data fabric and fan intelligence. 2034 World Cup is a hard deadline.",entry:"Name the legitimacy tension directly. Sovereign intelligence that connects the ecosystem.",c:"#FF6B6B"}
+          ].map(s=><div key={s.s} style={{...CS,padding:"18px 22px",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><div style={{width:8,height:8,borderRadius:4,background:s.c}}/><span style={{fontSize:15,fontWeight:700}}>{s.s}</span></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+              <div><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:4}}>WHAT THEY FEAR</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.fear}</div></div>
+              <div><div style={{...M,fontSize:9,color:"#FFB800",marginBottom:4}}>WHAT THEY WANT</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.want}</div></div>
+              <div><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:4}}>HUMAIN'S ENTRY</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{s.entry}</div></div>
+            </div>
+          </div>)}
+        </div>
+
+        {/* Meeting Toolkit */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>02 — MEETING TOOLKIT</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>48-Hour Meeting Architecture</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The door opens easily. What keeps it open is disciplined architecture applied before, during, and after every meeting.</div>
+          {[{t:"48 HOURS BEFORE",items:["Research client's latest announcements using AI brief tool","Map all attendees on LinkedIn: seniority, background, decision role","Prepare one Challenger-style sector insight that reframes their thinking","Load sector belief statement: know the fear, the ambition, the gap by memory"],c:"#00879F"},
+            {t:"2 HOURS BEFORE",items:["Check overnight news about client organization or sector","Decide primary next-step ask AND fallback if refused","Know which HUMAIN stack layer is the lowest-friction entry"],c:"#FFB800"},
+            {t:"IN THE MEETING",items:["Lead with sector insight, not product pitch","43:57 talk-to-listen ratio","FINAL 5 MIN: Book calendar invite before leaving the room"],c:"#00D49C"},
+            {t:"WITHIN 2 HOURS AFTER",items:["Follow-up email under 200 words with one specific insight","WhatsApp referencing the email and a specific topic discussed","Log meeting signals in CRM based on observables only"],c:"#D0F94A"}
+          ].map(phase=><div key={phase.t} style={{borderLeft:"3px solid "+phase.c,padding:"14px 20px",background:phase.c+"06",borderRadius:"0 10px 10px 0",marginBottom:10}}>
+            <div style={{...M,fontSize:9,letterSpacing:"0.12em",color:phase.c,marginBottom:8}}>{phase.t}</div>
+            {phase.items.map((item,j)=><div key={j} style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,padding:"3px 0",display:"flex",gap:8}}><span style={{color:phase.c,flexShrink:0}}>—</span>{item}</div>)}
+          </div>)}
+        </div>
+
+        {/* Signal Decoder */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>03 — SAUDI SIGNAL DECODER</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Reading the room</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+            <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:8}}>GENUINE BUYING INTENT</div>
+              {["WhatsApp connection + active follow-up by client","Introduction to additional senior stakeholders","Specific questions about PDPL, data localization","Social invite (dinner, istiraha) = major trust"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
+            <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#FFB800",marginBottom:8}}>WATCH CAREFULLY</div>
+              {["'We will study this' without who, when, or what","Meeting stayed entirely social after 60+ minutes","Only junior staff, no path to senior decision-makers","Enthusiastic agreement with everything, no hard questions"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
+            <div style={{...CS,padding:"16px 18px"}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:8}}>LIKELY NO DECISION</div>
+              {["No follow-up after 10+ days despite agreed next step","Senior attendee distracted, left early, never engaged","Three+ touchpoints with no progression signal"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0",borderBottom:"1px solid var(--border)"}}>{s}</div>)}</div>
+          </div>
+        </div>
+
+        {/* Cross-Sell */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>04 — CROSS-SELL LOGIC</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:6}}>Clients pull HUMAIN forward</div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>The cross-sell motion is not a sales process. It is a consequence of being embedded at the right depth. Clients pull HUMAIN forward. We never push.</div>
+          {[{t:"Visible Result Trigger",d:"Client achieves a measurable outcome. Leadership asks what else is possible.",arrow:"Core → Compute"},{t:"Trust Threshold Trigger",d:"Relationship deep enough for honest conversation about a new problem.",arrow:"Compute → Intelligence"},{t:"Client Pull Trigger",d:"Client identifies a new problem and calls HUMAIN first.",arrow:"Intelligence → Shift"},{t:"HUMAIN Sees First Trigger",d:"HUMAIN identifies a gap before the client names it. Presenting this insight first builds deepest trust.",arrow:"Shift → Expansion"}
+          ].map((t,i)=><div key={i} style={{display:"flex",gap:14,padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"rgba(0,135,159,0.06)",display:"flex",alignItems:"center",justifyContent:"center",...M,fontSize:10,color:"#00879F",flexShrink:0}}>{i+1}</div>
+            <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,marginBottom:2}}>{t.t}</div><div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{t.d}</div></div>
+            <span style={{...M,fontSize:9,color:"#00D49C",flexShrink:0,marginTop:4}}>{t.arrow}</span>
+          </div>)}
+        </div>
+
+        {/* Advisory vs Vendor */}
+        <div style={{marginBottom:40}}>
+          <div style={{...M,fontSize:9,letterSpacing:"0.2em",color:"var(--muted)",marginBottom:4}}>05 — ADVISORY POSITIONING</div>
+          <div style={{...T,fontSize:22,fontWeight:800,marginBottom:20}}>Not a vendor. A sovereign partner.</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            <div style={{...CS,padding:"18px 22px",opacity:0.5}}><div style={{...M,fontSize:9,color:"#FF4B4B",marginBottom:10}}>TECHNOLOGY VENDOR</div>
+              {["Sells what it has already built","Measures success in licenses and deployments","Leaves after implementation is complete","Knows the technology, not the business","Replicable by any better-funded competitor"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0"}}>— {s}</div>)}</div>
+            <div style={{...CS,padding:"18px 22px",border:"1px solid rgba(0,135,159,0.2)"}}><div style={{...M,fontSize:9,color:"#00D49C",marginBottom:10}}>HUMAIN AS SOVEREIGN ADVISER</div>
+              {["Enters through the client's deepest sector fear","Measures success in the client's own P&L language","Stays embedded and builds Saudi capability inside the client","Knows the sector, the operation, and the Arabic context","Irreplaceable because intelligence compounds with every engagement"].map((s,i)=><div key={i} style={{fontSize:12,color:"var(--sub)",padding:"4px 0"}}>— {s}</div>)}</div>
+          </div>
+        </div>
+      </div>);
     default:return<PH label={TABS.find(t=>t.id===tab)?.label||tab} icon={TABS.find(t=>t.id===tab)?.icon||Home}/>;
   }};
 
