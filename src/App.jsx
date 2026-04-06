@@ -196,7 +196,7 @@ return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWei
         </div>);})()}
     </div>
   </div>
-  <div style={{display:"flex",gap:0,marginBottom:20,justifyContent:"space-between",alignItems:"center"}}><div style={{display:"inline-flex",borderRadius:10,overflow:"hidden",border:"1px solid var(--border)"}}>{tabs.map(t=>{const I=t.icon;return(<button key={t.id} onClick={()=>sVw(t.id)} style={{...M,fontSize:11,padding:"9px 18px",border:"none",background:vw===t.id?"#00879F":"var(--card-bg)",color:vw===t.id?"#fff":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><I size={13}/>{t.label}</button>);})}</div><button onClick={()=>sMktModal({type:vw==="content"?"asset":vw==="leads"?"lead":"campaign",item:null})} style={BP}><Plus size={13} style={{marginRight:5}}/>New</button></div>
+  <div style={{display:"flex",gap:0,marginBottom:20,justifyContent:"space-between",alignItems:"center"}}><div style={{display:"inline-flex",borderRadius:10,overflow:"hidden",border:"1px solid var(--border)"}}>{tabs.map(t=>{const I=t.icon;return(<button key={t.id} onClick={()=>sVw(t.id)} style={{...M,fontSize:11,padding:"9px 18px",border:"none",background:vw===t.id?"#00879F":"var(--card-bg)",color:vw===t.id?"#fff":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><I size={13}/>{t.label}</button>);})}</div><div style={{display:"flex",gap:8}}><button onClick={async()=>{try{const d=await callClaude(null,[{role:"user",content:"You are a marketing strategist for HUMAIN, a sovereign AI company in Saudi Arabia. We have "+camps.length+" campaigns and "+leads.length+" leads. Current campaigns: "+camps.map(x=>x.name+" ("+x.status+")").join(", ")+". Suggest 3 new campaign ideas with: name, type, target sector, estimated budget, and expected impact. Format clearly."}],{max_tokens:800});alert(d.content?.[0]?.text||"No response");}catch(e){alert("Error: "+e.message);}}} style={{...BG,padding:"8px 14px",fontSize:11,color:"#D0F94A",borderColor:"rgba(208,249,74,0.2)"}}>AI Campaign Planner</button><button onClick={()=>sMktModal({type:vw==="content"?"asset":vw==="leads"?"lead":"campaign",item:null})} style={BP}><Plus size={13} style={{marginRight:5}}/>New</button></div></div>
 {vw==="campaigns"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Type","Sector","Status","Budget","Dates"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{camps.map(c=><tr key={c.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"campaign",item:c})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{c.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{c.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:c.status==="Active"?"rgba(0,212,156,0.06)":c.status==="Planned"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:c.status==="Active"?"#00D49C":c.status==="Planned"?"#FFB800":"#8A9BAA"}}>{c.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.budget_sar?`SAR ${Number(c.budget_sar).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{c.start_date||"—"}</td></tr>)}{camps.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No campaigns yet</td></tr>}</tbody></table></div>}
 {vw==="leads"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Organization","Sector","Source","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{leads.map(l=><tr key={l.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"lead",item:l})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{l.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{l.organization||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.sector||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.source_type||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:l.status==="Hot"?"rgba(255,75,75,0.06)":l.status==="Warm"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:l.status==="Hot"?"#FF4B4B":l.status==="Warm"?"#FFB800":"#8A9BAA"}}>{l.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{l.created_at?new Date(l.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{leads.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No leads yet</td></tr>}</tbody></table></div>}
 {vw==="content"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Title","Type","Sector","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{assets.map(a=><tr key={a.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"asset",item:a})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{a.title||a.name||"—"}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{a.asset_type||a.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{a.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:"rgba(0,135,159,0.06)",color:"#00879F"}}>{a.status||"Draft"}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{a.created_at?new Date(a.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{assets.length===0&&<tr><td colSpan={5} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No assets yet</td></tr>}</tbody></table></div>}
@@ -376,6 +376,7 @@ async function runAllAgents(token,deals,leads,assets,debriefs,claudeKey){
 }
 
 function AgentsTab({token,deals,leads,assets,debriefs,onRefresh,claudeKey,onOpenDeal}){
+  const[qFilter,sQF]=useState("all");
   const[queue,sQueue]=useState([]);const[running,sRunning]=useState(null);const[results,sResults]=useState({});const[runAll,sRunAll]=useState(false);
   const loadQueue=useCallback(()=>{if(token)q("/rest/v1/agent_queue?select=*&order=created_at.desc&limit=40",token).then(sQueue).catch(()=>{});},[token]);
   useEffect(()=>{loadQueue();},[loadQueue]);
@@ -412,7 +413,7 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh,claudeKey,onOpen
 
   return(<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-      <div><div style={{...T,fontSize:22,fontWeight:800}}>Agents</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>12 sovereign intelligence agents</div></div>
+      <div><div style={{...T,fontSize:22,fontWeight:800}}>Agents</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>12 sovereign intelligence agents · <span style={{color:"#FFB800"}}>{queue.filter(q2=>q2.status==="pending").length} pending actions</span></div></div>
       <button onClick={execAll} disabled={runAll} style={{...BP,opacity:runAll?0.6:1}}><Zap size={14} style={{marginRight:6}}/>{runAll?"Running all...":"Run All Agents"}</button>
     </div>
 
@@ -431,9 +432,10 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh,claudeKey,onOpen
       </div>);})}
     </div>
 
-    {queue.filter(q2=>q2.status==="pending").length>0&&<>
-      <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>PENDING ACTIONS ({queue.filter(q2=>q2.status==="pending").length})</div>
-      <div style={CS}>{queue.filter(q2=>q2.status==="pending").map(item=>(
+    {(qFilter!=="all"||queue.filter(q2=>q2.status==="pending").length>0)&&<>
+      <div style={{display:"flex",gap:4,marginBottom:12}}>{["all","pending","critical","high","approved","dismissed"].map(f=><button key={f} onClick={()=>sQF(f)} style={{...M,fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid var(--border)",background:qFilter===f?"rgba(0,135,159,0.06)":"transparent",color:qFilter===f?"#00879F":"var(--muted)",cursor:"pointer",textTransform:"capitalize"}}>{f==="all"?"All":f}</button>)}</div>
+      <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>ACTION QUEUE ({queue.filter(q2=>qFilter==="all"?true:qFilter==="pending"?q2.status==="pending":qFilter==="critical"?q2.priority==="critical":qFilter==="high"?q2.priority==="high":q2.status===qFilter).length})</div>
+      <div style={CS}>{queue.filter(q2=>qFilter==="all"?q2.status==="pending":qFilter==="pending"?q2.status==="pending":qFilter==="critical"?q2.priority==="critical"&&q2.status==="pending":qFilter==="high"?q2.priority==="high"&&q2.status==="pending":q2.status===qFilter).map(item=>(
         <div key={item.id} style={{padding:"14px 18px",borderBottom:"1px solid var(--border)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
             <div style={{flex:1}}>
@@ -657,8 +659,24 @@ return(<div>
     {testResult&&<div style={{...M,fontSize:10,color:testResult.includes("Connected")||testResult==="Saved"?"#00D49C":"#FF4B4B",marginTop:8}}>{testResult}</div>}
   </div>
   <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>VOICE CONFIGURATION</div>
-  <div style={{...CS,padding:20}}>
+  <div style={{...CS,padding:20,marginBottom:20}}>
     <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>Voice input uses browser-native speech recognition (no API key needed). ElevenLabs provides premium text-to-speech output. Key is stored in system_config table.</div>
+  </div>
+  <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>KNOWLEDGE BASE</div>
+  <div style={{...CS,padding:20}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <div><div style={{fontSize:14,fontWeight:700,marginBottom:2}}>Embedded Knowledge</div><div style={{fontSize:12,color:"var(--sub)"}}>Framework and Engagement OS are loaded as native React components. No RAG pipeline needed for current content.</div></div>
+    </div>
+    <div style={{display:"flex",gap:10}}>
+      <div style={{flex:1,padding:"12px 16px",background:"var(--panel2)",borderRadius:8,border:"1px solid var(--border)"}}>
+        <div style={{...M,fontSize:9,color:"#00879F",marginBottom:4}}>THE FRAMEWORK</div>
+        <div style={{fontSize:12,color:"var(--sub)"}}>Sector beliefs, 5-stage progression, 8 principles, irreversibility conditions</div>
+      </div>
+      <div style={{flex:1,padding:"12px 16px",background:"var(--panel2)",borderRadius:8,border:"1px solid var(--border)"}}>
+        <div style={{...M,fontSize:9,color:"#00D49C",marginBottom:4}}>ENGAGEMENT OS</div>
+        <div style={{fontSize:12,color:"var(--sub)"}}>Sector entry guides, meeting toolkit, signal decoder, cross-sell logic</div>
+      </div>
+    </div>
   </div>
 </div>);}
 
@@ -801,7 +819,8 @@ return(<div>
 return(<div>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
     <div><div style={{...T,fontSize:22,fontWeight:800}}>Dashboard & Reporting</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Pipeline analytics, sector intelligence, and deal velocity.</div></div>
-    <div style={{display:"inline-flex",borderRadius:8,overflow:"hidden",border:"1px solid var(--border)"}}>{[{id:"all",label:"All Time"},{id:"90",label:"90 Days"},{id:"30",label:"30 Days"},{id:"7",label:"7 Days"}].map(p=><button key={p.id} onClick={()=>sDashPeriod(p.id)} style={{padding:"6px 14px",border:"none",fontSize:11,...M,cursor:"pointer",background:dashPeriod===p.id?"#00879F":"var(--card-bg)",color:dashPeriod===p.id?"#fff":"var(--muted)"}}>{p.label}</button>)}</div>
+    <div style={{display:"flex",gap:8,alignItems:"center"}}><button onClick={()=>{const rows=[["Client","Sector","Stage","Status","Value","Score","Contact","Next Step","Updated"],...deals.map(d=>[d.client_name,d.sector,d.stage,d.status,d.expected_value||0,d.deal_score||0,d.contact_name||"",d.next_step||"",d.updated_at||""])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="compass_pipeline_"+new Date().toISOString().slice(0,10)+".csv";a.click();}} style={{...BG,padding:"8px 14px",fontSize:11}}>Export CSV</button>
+    <div style={{display:"inline-flex",borderRadius:8,overflow:"hidden",border:"1px solid var(--border)"}}>{[{id:"all",label:"All Time"},{id:"90",label:"90 Days"},{id:"30",label:"30 Days"},{id:"7",label:"7 Days"}].map(p=><button key={p.id} onClick={()=>sDashPeriod(p.id)} style={{padding:"6px 14px",border:"none",fontSize:11,...M,cursor:"pointer",background:dashPeriod===p.id?"#00879F":"var(--card-bg)",color:dashPeriod===p.id?"#fff":"var(--muted)"}}>{p.label}</button>)}</div></div>
   </div>
   {isA&&<div style={{...CS,padding:20,marginBottom:20,border:"1px solid rgba(208,249,74,0.15)"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",alignItems:"center",gap:8}}><Shield size={14} color="#D0F94A"/><span style={{...M,fontSize:10,letterSpacing:"0.1em",color:"#D0F94A"}}>EXECUTIVE SUMMARY</span></div></div>
@@ -978,6 +997,22 @@ return(<div>
     <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
       <div style={{width:36,height:36,borderRadius:"50%",background:"#FFB800",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",...T,fontSize:16,fontWeight:800,flexShrink:0}}>4</div>
       <div><div style={{...T,fontSize:16,fontWeight:700,marginBottom:4}}>Sign In Once, Then Set Yourself as Admin</div><div style={{fontSize:13,color:"var(--sub)"}}>Sign into COMPASS first (creates your profile row). Then run the admin query below.</div></div>
+    </div>
+    <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+      <div style={{width:36,height:36,borderRadius:"50%",background:"#8A9BAA",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",...T,fontSize:16,fontWeight:800,flexShrink:0}}>5</div>
+      <div><div style={{...T,fontSize:16,fontWeight:700,marginBottom:4}}>Add Claude API Key</div><div style={{fontSize:13,color:"var(--sub)"}}>Admin → AI Configuration → paste your Anthropic API key → Save Key → Test.</div></div>
+    </div>
+    <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+      <div style={{width:36,height:36,borderRadius:"50%",background:"#8A9BAA",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",...T,fontSize:16,fontWeight:800,flexShrink:0}}>6</div>
+      <div><div style={{...T,fontSize:16,fontWeight:700,marginBottom:4}}>Add ElevenLabs Key (Optional)</div><div style={{fontSize:13,color:"var(--sub)"}}>Run in SQL Editor: INSERT INTO system_config (config_key, config_value) VALUES ('elevenlabs_api_key', 'your-key-here');</div></div>
+    </div>
+    <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+      <div style={{width:36,height:36,borderRadius:"50%",background:"#8A9BAA",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",...T,fontSize:16,fontWeight:800,flexShrink:0}}>7</div>
+      <div><div style={{...T,fontSize:16,fontWeight:700,marginBottom:4}}>Enable RLS Policies</div><div style={{fontSize:13,color:"var(--sub)"}}>Enable Row Level Security on all tables. Add policies: authenticated users can SELECT, INSERT, UPDATE, DELETE.</div></div>
+    </div>
+    <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+      <div style={{width:36,height:36,borderRadius:"50%",background:"#8A9BAA",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",...T,fontSize:16,fontWeight:800,flexShrink:0}}>8</div>
+      <div><div style={{...T,fontSize:16,fontWeight:700,marginBottom:4}}>Invite Your Team</div><div style={{fontSize:13,color:"var(--sub)"}}>Admin → Create User for each team member. They'll sign in with the temporary password you set.</div></div>
     </div>
   </div>
   <div style={{...CS,marginBottom:16}}>
