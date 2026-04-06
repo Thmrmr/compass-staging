@@ -80,6 +80,54 @@ async function speakTTS(text,elKey){
   try{const r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+vid+"/stream",{method:"POST",headers:{"xi-api-key":elKey,"Content-Type":"application/json"},body:JSON.stringify({text:text.slice(0,2500),model_id:"eleven_multilingual_v2",voice_settings:{stability:0.5,similarity_boost:0.75}})});
   if(!r.ok)throw new Error("TTS failed");const blob=await r.blob();const url=URL.createObjectURL(blob);const a=new Audio(url);a.play();}catch(e){console.warn("TTS error:",e);if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(text);window.speechSynthesis.speak(u);}}}
 
+const COMPASS_KB=`HUMAIN KNOWLEDGE BASE — USE THIS TO ANSWER QUESTIONS
+
+MASTER THREAD: Every sector has the same execution gap between sovereign ambition and operational reality. HUMAIN closes that gap as the sovereign intelligence partner that stays, builds, and compounds.
+
+SECTOR BELIEFS:
+- Government: Cross-ministry orchestration. Fear: losing AI narrative while 193 entities can't share data. Belief: they proved digital transformation works, now repeat with AI. HUMAIN is trusted connective tissue.
+- Oil & Gas: OT/IT + domain expertise. Fear: strategic irrelevance before proving they're tech companies. Two clocks: relevance + asset value. Blockers are human/cultural. Speak oilfield, not algorithm.
+- Healthcare: Arabic clinical AI. Fear: too fast = clinical harm, too slow = miss Vision 2030. EHR data broken, no Arabic clinical AI. Start with data quality truth, not AI demos.
+- Private Sector: Data foundation first. Fear: CEO announced AI-first but org can't execute (81% claim, 27% adopt). Honest diagnostic, fix data first.
+- Sport: Ecosystem data fabric. Fear: billions spent, nothing sustainable. 2034 World Cup hard deadline. Intelligence, not investment. Connect clubs/federations/venues/academies.
+
+5 STAGES: Recognition (belief lands) → Proof (visible result) → Integration (embedded in workflow) → Dependency (can't operate without HUMAIN) → Expansion (invited into new rooms)
+
+8 PRINCIPLES:
+1. Lead with execution gap, never product
+2. Belief statement is the key, not the demo
+3. Every meeting ends with an advance, not a continuation
+4. Observable signals only, no assumptions
+5. Debrief is mandatory within 90 seconds
+6. Never create urgency that doesn't exist
+7. WhatsApp from CEO = highest buying signal
+8. Sovereignty is the foundation, not a feature
+
+IRREVERSIBILITY: 4 conditions must be simultaneously true: Workflow Dependency, Capability Dependency, Sovereign Trust, Expanding Invitation.
+
+MEETING TOOLKIT:
+- 48h before: research client, map attendees, prepare Challenger insight, load belief statement
+- 2h before: check overnight news, decide next-step ask + fallback
+- In meeting: lead with insight not product, 43:57 talk:listen, book calendar in final 5 min
+- 2h after: follow-up email <200 words, WhatsApp referencing email, log signals in CRM
+
+SIGNAL DECODER:
+- Buying intent: WhatsApp connection, intro to senior stakeholders, PDPL questions, social invite
+- Watch: "we will study this" without specifics, 60+ min social only, only junior staff
+- No decision: no follow-up 10+ days, senior distracted/left early, 3+ touchpoints no progression
+
+CROSS-SELL TRIGGERS: Visible Result → Trust Threshold → Client Pull → HUMAIN Sees First
+
+PRODUCTS: HUMAIN ONE (unified AI interface), Brain/ALLAM (Arabic LLM), CORE (infrastructure), OS (workflow), Create (creative AI), Life (consumer), Code (developer), Care (healthcare), Next (research)
+
+OBJECTION RESPONSES:
+- "Already with Microsoft/Google": They're infrastructure, HUMAIN is sovereignty. Who owns the intelligence?
+- "HUMAIN is new": PIF mandate, Crown Prince directive. Early mover advantage.
+- "No budget": Suggest diagnostic assessment, no cost, becomes budget justification.
+- "Procurement process": Already on Etimad, MISA-licensed. Relationship during procurement IS the deal.
+- "Tried AI before, didn't scale": 69% GCC still in pilot. Problem is data infrastructure, not AI capability.
+- "Inshallah": Three meanings. Look for specific action, not just warmth.`;
+
 function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
   const[pendingDeal,sPD]=useState(null);const[agentCtx,sAgentCtx]=useState("");const[savingDeal,sSD]=useState(false);
   const saveDeal=async()=>{if(!pendingDeal?.client_name)return;sSD(true);try{
@@ -95,8 +143,8 @@ const BRIEF_TOOL={name:"prepare_meeting_brief",description:"Prepare a meeting br
 const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);sMs(p=>[...p,{role:"user",content:t}]);const a=deals.filter(d=>d.status==="Active");
   const selectedAgent=agentCtx?AGENTS.find(x=>x.key===agentCtx):null;
     const sys=selectedAgent
-      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+". "+a.length+" active deals. Respond from your agent perspective. Be specific and actionable."
-      :"You are COMPASS AI for HUMAIN CRM. User: "+(profile?.full_name||"")+". "+a.length+" active deals. When the user mentions meeting a client, new opportunity, or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Otherwise respond normally. Be concise.";
+      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+". "+a.length+" active deals.\n\n"+COMPASS_KB+"\n\nRespond from your agent perspective using the knowledge base above. Reference specific sector beliefs, principles, and tactics when relevant. Be specific and actionable."
+      :"You are COMPASS AI, the sovereign intelligence layer for HUMAIN CRM. User: "+(profile?.full_name||"")+". "+a.length+" active deals.\n\n"+COMPASS_KB+"\n\nWhen the user mentions meeting a client, new opportunity, or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Use the knowledge base above to answer questions about sector beliefs, engagement principles, meeting tactics, and HUMAIN products. Be specific and actionable. Be concise.";
   try{const body={apiKey:claudeKey||"",model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[...ms.slice(-10),{role:"user",content:t}],system:sys,tools:[DEAL_TOOL,BRIEF_TOOL]};
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok){const err=await r.text();throw new Error(err||"Claude API error");}const d=await r.json();
     let txt=[];let toolUse=null;
@@ -159,7 +207,7 @@ function MktModal({type,item,onClose,onSave,token}){
   </div></div>);
 }
 
-function Marketing({token}){const[vw,sVw]=useState("campaigns");const[camps,sCamps]=useState([]);const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[mktModal,sMktModal]=useState(null);
+function Marketing({token,claudeKey:mktCK}){const[vw,sVw]=useState("campaigns");const[camps,sCamps]=useState([]);const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[mktModal,sMktModal]=useState(null);
   const loadMkt=useCallback(()=>{if(!token)return;q("/rest/v1/campaigns?select=*&order=created_at.desc",token).then(sCamps).catch(()=>{});q("/rest/v1/leads?select=*&order=created_at.desc",token).then(sLeads).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",token).then(sAssets).catch(()=>{});},[token]);
 useEffect(()=>{loadMkt();},[loadMkt]);
 const tabs=[{id:"campaigns",label:`Campaigns (${camps.length})`,icon:Megaphone},{id:"leads",label:`Leads (${leads.length})`,icon:UserPlus},{id:"content",label:`Content (${assets.length})`,icon:FileText},{id:"calendar",label:"Calendar",icon:Calendar}];
@@ -172,7 +220,7 @@ return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWei
   </div>
 <div style={{...CS,padding:"16px 20px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(0,212,156,0.02)",border:"1px solid rgba(0,212,156,0.1)"}}>
     <div><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><div style={{width:6,height:6,borderRadius:3,background:"#00D49C"}}/><span style={{...M,fontSize:9,color:"#00D49C",letterSpacing:"0.1em"}}>AI WEEKLY BRIEF</span></div><div style={{fontSize:13,color:"var(--sub)"}}>Click Refresh to generate this week's marketing intelligence brief.</div></div>
-    <button onClick={async()=>{if(!window._mktBriefBusy){window._mktBriefBusy=true;try{const d=await callClaude(null,[{role:"user",content:"Generate a weekly marketing brief for a sovereign AI company in Saudi Arabia with "+camps.length+" campaigns, "+leads.length+" leads, "+assets.length+" content assets. Active campaigns: "+camps.filter(x=>x.status==="Active").map(x=>x.name).join(", ")+". Provide 3 insights and 2 recommendations. Be concise."}],{max_tokens:600});alert(d.content?.[0]?.text||"No response");}catch(e){alert("Error: "+e.message);}finally{window._mktBriefBusy=false;}}}} style={{...BG,padding:"8px 16px",display:"flex",alignItems:"center",gap:6,flexShrink:0}}><RefreshCw size={13}/>Refresh</button>
+    <button onClick={async()=>{if(!window._mktBriefBusy){window._mktBriefBusy=true;try{const d=await callClaude(mktCK,[{role:"user",content:"Generate a weekly marketing intelligence brief.\n\n"+COMPASS_KB+"\n\nCurrent data: "+camps.length+" campaigns, "+leads.length+" leads, "+assets.length+" content assets. Active campaigns: "+camps.filter(x=>x.status==="Active").map(x=>x.name).join(", ")+". Provide 3 insights about campaign effectiveness and 2 recommendations aligned with HUMAIN sector strategy. Reference specific sectors. Be concise."}],{max_tokens:600});alert(d.content?.[0]?.text||"No response");}catch(e){alert("Error: "+e.message);}finally{window._mktBriefBusy=false;}}}} style={{...BG,padding:"8px 16px",display:"flex",alignItems:"center",gap:6,flexShrink:0}}><RefreshCw size={13}/>Refresh</button>
   </div>
   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
     <div style={{...CS,padding:20}}>
@@ -196,7 +244,7 @@ return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWei
         </div>);})()}
     </div>
   </div>
-  <div style={{display:"flex",gap:0,marginBottom:20,justifyContent:"space-between",alignItems:"center"}}><div style={{display:"inline-flex",borderRadius:10,overflow:"hidden",border:"1px solid var(--border)"}}>{tabs.map(t=>{const I=t.icon;return(<button key={t.id} onClick={()=>sVw(t.id)} style={{...M,fontSize:11,padding:"9px 18px",border:"none",background:vw===t.id?"#00879F":"var(--card-bg)",color:vw===t.id?"#fff":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><I size={13}/>{t.label}</button>);})}</div><div style={{display:"flex",gap:8}}><button onClick={async()=>{try{const d=await callClaude(null,[{role:"user",content:"You are a marketing strategist for HUMAIN, a sovereign AI company in Saudi Arabia. We have "+camps.length+" campaigns and "+leads.length+" leads. Current campaigns: "+camps.map(x=>x.name+" ("+x.status+")").join(", ")+". Suggest 3 new campaign ideas with: name, type, target sector, estimated budget, and expected impact. Format clearly."}],{max_tokens:800});alert(d.content?.[0]?.text||"No response");}catch(e){alert("Error: "+e.message);}}} style={{...BG,padding:"8px 14px",fontSize:11,color:"#5A7A00",borderColor:"rgba(90,122,0,0.2)"}}>AI Campaign Planner</button><button onClick={()=>sMktModal({type:vw==="content"?"asset":vw==="leads"?"lead":"campaign",item:null})} style={BP}><Plus size={13} style={{marginRight:5}}/>New</button></div></div>
+  <div style={{display:"flex",gap:0,marginBottom:20,justifyContent:"space-between",alignItems:"center"}}><div style={{display:"inline-flex",borderRadius:10,overflow:"hidden",border:"1px solid var(--border)"}}>{tabs.map(t=>{const I=t.icon;return(<button key={t.id} onClick={()=>sVw(t.id)} style={{...M,fontSize:11,padding:"9px 18px",border:"none",background:vw===t.id?"#00879F":"var(--card-bg)",color:vw===t.id?"#fff":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:6}}><I size={13}/>{t.label}</button>);})}</div><div style={{display:"flex",gap:8}}><button onClick={async()=>{try{const d=await callClaude(mktCK,[{role:"user",content:"You are a marketing strategist for HUMAIN.\n\n"+COMPASS_KB+"\n\nCurrent campaigns: "+camps.map(x=>x.name+" ("+x.status+", "+x.sector+")").join(", ")+". "+leads.length+" leads across sectors.\n\nSuggest 3 new campaign ideas. Each must: target a specific sector gap from the knowledge base, name the fear it addresses, specify type (Event/Webinar/Content/Digital), estimated budget in SAR, and expected pipeline impact. Format clearly."}],{max_tokens:800});alert(d.content?.[0]?.text||"No response");}catch(e){alert("Error: "+e.message);}}} style={{...BG,padding:"8px 14px",fontSize:11,color:"#5A7A00",borderColor:"rgba(90,122,0,0.2)"}}>AI Campaign Planner</button><button onClick={()=>sMktModal({type:vw==="content"?"asset":vw==="leads"?"lead":"campaign",item:null})} style={BP}><Plus size={13} style={{marginRight:5}}/>New</button></div></div>
 {vw==="campaigns"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Type","Sector","Status","Budget","Dates"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{camps.map(c=><tr key={c.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"campaign",item:c})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{c.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{c.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:c.status==="Active"?"rgba(0,212,156,0.06)":c.status==="Planned"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:c.status==="Active"?"#00D49C":c.status==="Planned"?"#FFB800":"#8A9BAA"}}>{c.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{c.budget_sar?`SAR ${Number(c.budget_sar).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{c.start_date||"—"}</td></tr>)}{camps.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No campaigns yet</td></tr>}</tbody></table></div>}
 {vw==="leads"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Name","Organization","Sector","Source","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{leads.map(l=><tr key={l.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"lead",item:l})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{l.name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{l.organization||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.sector||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{l.source_type||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:l.status==="Hot"?"rgba(255,75,75,0.06)":l.status==="Warm"?"rgba(255,184,0,0.06)":"rgba(138,155,170,0.06)",color:l.status==="Hot"?"#FF4B4B":l.status==="Warm"?"#FFB800":"#8A9BAA"}}>{l.status}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{l.created_at?new Date(l.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{leads.length===0&&<tr><td colSpan={6} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No leads yet</td></tr>}</tbody></table></div>}
 {vw==="content"&&<div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Title","Type","Sector","Status","Created"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{assets.map(a=><tr key={a.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sMktModal({type:"asset",item:a})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{a.title||a.name||"—"}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{a.asset_type||a.type||"—"}</td><td style={{padding:"10px 14px",...M,fontSize:11,color:"var(--sub)"}}>{a.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:"rgba(0,135,159,0.06)",color:"#00879F"}}>{a.status||"Draft"}</span></td><td style={{padding:"10px 14px",...M,fontSize:10,color:"var(--muted)"}}>{a.created_at?new Date(a.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—"}</td></tr>)}{assets.length===0&&<tr><td colSpan={5} style={{padding:24,textAlign:"center",color:"var(--muted)"}}>No assets yet</td></tr>}</tbody></table></div>}
@@ -328,7 +376,7 @@ async function runAIAgent(token,agentName,prompt,passedKey){
   let ck=passedKey||null;
   if(!ck){try{const kr=await q("/rest/v1/system_config?config_key=eq.claude_api_key&select=config_value",token);if(kr?.[0]?.config_value)ck=kr[0].config_value.replace(/[^\x20-\x7E]/g,"").trim();}catch(e){}}
   try{
-    const d=await callClaude(ck,[{role:"user",content:prompt}],{max_tokens:800});
+    const d=await callClaude(ck,[{role:"user",content:prompt}],{max_tokens:800,system:"You are a HUMAIN COMPASS intelligence agent. Use this knowledge base:\n"+COMPASS_KB+"\nProvide specific, actionable insights based on HUMAIN's actual beliefs and methodology."});
     const text=d.content?.map(c=>c.text||"").join("")||"No response";
     await q("/rest/v1/agent_queue",token,{method:"POST",body:JSON.stringify({
       agent_name:agentName,action_type:"ai_analysis",title:agentName+" Analysis — "+new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"short"}),
@@ -349,27 +397,27 @@ async function runAllAgents(token,deals,leads,assets,debriefs,claudeKey){
   const dealCtx=active.slice(0,10).map(d=>d.client_name+" ("+d.sector+", "+d.stage+", SAR "+(d.expected_value||0).toLocaleString()+")").join("; ");
 
   results.sector_radar=await runAIAgent(token,"Sector Radar",
-    "Analyze sector patterns in these deals: "+dealCtx+". Identify which sectors are strongest, which are underserved, and recommend where to focus next. Be concise, 3-5 bullet points.",claudeKey);
+    "You are Sector Radar for HUMAIN sovereign AI. Analyze these active deals: "+dealCtx+". Cross-reference with HUMAIN sector beliefs. Which sectors align with our beliefs? Where are gaps between our pipeline and our sector strategy? 3-5 specific recommendations.",claudeKey);
 
   if(debriefs&&debriefs.length>0){
     const dbCtx=debriefs.slice(0,5).map(d=>d.sector+": confirmed="+((d.confirmed||"").slice(0,80))+", challenged="+((d.challenged||"").slice(0,80))+", new="+((d.new_signal||"").slice(0,80))).join("\n");
     results.debrief_analyst=await runAIAgent(token,"Debrief Analyst",
-      "Analyze these recent meeting debriefs and extract patterns:\n"+dbCtx+"\nWhat themes emerge? What beliefs need updating? 3-5 insights.",claudeKey);
+      "You are Debrief Analyst for HUMAIN. Analyze these meeting debriefs against our sector beliefs:\n"+dbCtx+"\nWhich HUMAIN beliefs were confirmed? Which were challenged? What new signals should update our sector intelligence? 3-5 specific insights.",claudeKey);
     results.belief_evolution=await runAIAgent(token,"Belief Evolution",
-      "Based on these debrief signals:\n"+dbCtx+"\nWhich sector beliefs are being confirmed vs challenged? Recommend belief updates. Be specific.",claudeKey);
+      "You are Belief Evolution tracker for HUMAIN. Based on these debrief signals:\n"+dbCtx+"\nCompare against our current sector beliefs (Government: cross-ministry orchestration, O&G: OT/IT domain expertise, Healthcare: Arabic clinical AI, Private Sector: data foundation first, Sport: ecosystem data fabric). Which are strengthening? Which need revision? Recommend specific belief statement updates.",claudeKey);
   }else{results.debrief_analyst="No debriefs to analyze";results.belief_evolution="No debrief data";}
 
   const wonLost=deals.filter(d=>d.status==="Won"||d.status==="Lost");
   if(wonLost.length>2){
     const wlCtx=wonLost.slice(0,8).map(d=>d.client_name+" ("+d.sector+") = "+d.status+", value: SAR "+(d.expected_value||0).toLocaleString()).join("; ");
-    results.winloss_intel=await runAIAgent(token,"Win/Loss Intel","Analyze won/lost patterns: "+wlCtx+". What differentiates wins from losses? 3-5 insights.",claudeKey);
+    results.winloss_intel=await runAIAgent(token,"Win/Loss Intel","You are Win/Loss Intel for HUMAIN. Analyze these outcomes: "+wlCtx+". Against our 5-stage progression (Recognition→Proof→Integration→Dependency→Expansion) and 8 engagement principles, what patterns differentiate wins from losses? Which principles were followed in wins? Which were violated in losses? 3-5 actionable insights.",claudeKey);
   }else{results.winloss_intel="Not enough won/lost data";}
 
   results.team_coach=await runAIAgent(token,"Team Coach",
-    "Pipeline has "+active.length+" active deals. "+deals.filter(d=>d.status==="Won",claudeKey).length+" won, "+deals.filter(d=>d.status==="Lost").length+" lost. Average deal value: SAR "+Math.round(active.reduce((s,d)=>s+(d.expected_value||0),0)/Math.max(active.length,1)).toLocaleString()+". Provide 3 coaching recommendations for the BD team.",claudeKey);
+    "You are Team Coach for HUMAIN BD team. Pipeline: "+active.length+" active deals, "+deals.filter(d=>d.status==="Won").length+" won, "+deals.filter(d=>d.status==="Lost").length+" lost. Avg deal: SAR "+Math.round(active.reduce((s,d)=>s+(d.expected_value||0),0)/Math.max(active.length,1)).toLocaleString()+". Based on HUMAIN's 8 engagement principles (lead with gap not product, belief is the key, advance not continuation, observable signals only, mandatory debrief, no manufactured urgency, WhatsApp = buying signal, sovereignty = foundation), provide 3 coaching recommendations. Reference specific principles the team should focus on.",claudeKey);
 
   results.campaign_roi=await runAIAgent(token,"Campaign ROI",
-    "We have "+active.length+" active deals across sectors. Leads feed from campaigns. Recommend how to measure and improve campaign ROI for a sovereign AI company in Saudi Arabia. 3-5 actionable points.",claudeKey);
+    "You are Campaign ROI analyst for HUMAIN. "+active.length+" active deals across 5 sectors (Government, O&G, Healthcare, Private Sector, Sport). Leads feed from campaigns into the 5-stage pipeline. Based on HUMAIN sector beliefs and the cross-sell logic (Visible Result→Trust Threshold→Client Pull→HUMAIN Sees First), recommend how to measure and improve campaign ROI. Which sector campaigns should accelerate? 3-5 actionable points.",claudeKey);
 
   results.brief_architect="Briefs generated on-demand via Meetings tab";
   return results;
@@ -394,7 +442,7 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh,claudeKey,onOpen
         default:{
           const active=deals.filter(d=>d.status==="Active");
           const ctx=active.slice(0,10).map(d=>d.client_name+" ("+d.sector+", "+d.stage+")").join("; ");
-          res=await runAIAgent(token,agent.name,"You are "+agent.name+" agent. "+agent.desc+". Analyze: "+ctx+". Provide 3-5 actionable insights. Be concise.",claudeKey);
+          res=await runAIAgent(token,agent.name,"You are "+agent.name+" agent for HUMAIN sovereign AI in Saudi Arabia. "+agent.desc+". Use the HUMAIN knowledge base to ground your analysis.\n\nActive pipeline: "+ctx+"\n\nProvide 3-5 actionable insights referencing specific HUMAIN sector beliefs, engagement principles, or methodology where relevant. Be concise.",claudeKey);
         }
       }
       sResults(p=>({...p,[agent.key]:res}));loadQueue();if(onRefresh)onRefresh();
@@ -495,7 +543,7 @@ function Meetings({deals,profile,token,elKey,claudeKey}){
   const prefill=(dealId)=>{const d=a.find(x=>x.id===dealId);if(d)sBf(p=>({...p,client:d.client_name||"",sector:d.sector||"",value:d.expected_value?String(d.expected_value):"",goal:d.next_step||""}));};
 
   const generate=async()=>{if(!bf.client.trim()){alert("Client name required");return;}sGB(true);sBrief("");
-    const prompt="Generate a comprehensive pre-meeting brief for the HUMAIN BD team.\n\n"+
+    const prompt="Generate a comprehensive pre-meeting brief for the HUMAIN BD team. Use the following HUMAIN knowledge base for sector beliefs and engagement principles:\n\n"+COMPASS_KB+"\n\n"+
       "CLIENT: "+bf.client+"\n"+
       "SECTOR: "+(bf.sector||"Not specified")+"\n"+
       "MEETING TYPE: "+bf.meetingType+"\n"+
@@ -680,7 +728,7 @@ return(<div>
   <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>KNOWLEDGE BASE</div>
   <div style={{...CS,padding:20}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <div><div style={{fontSize:14,fontWeight:700,marginBottom:2}}>Embedded Knowledge</div><div style={{fontSize:12,color:"var(--sub)"}}>Framework and Engagement OS are loaded as native React components. No RAG pipeline needed for current content.</div></div>
+      <div><div style={{fontSize:14,fontWeight:700,marginBottom:2}}>Embedded Knowledge</div><div style={{fontSize:12,color:"var(--sub)"}}>Framework and Engagement OS are loaded as native React components. Content is injected into every AI prompt — Claude references beliefs, principles, and tactics in all responses.</div></div>
     </div>
     <div style={{display:"flex",gap:10}}>
       <div style={{flex:1,padding:"12px 16px",background:"var(--panel2)",borderRadius:8,border:"1px solid var(--border)"}}>
@@ -918,7 +966,7 @@ return(<div>
 </div>);}
     case"agents":return<AgentsTab token={tk} deals={deals} leads={leads} assets={assets} debriefs={debriefs} onRefresh={ld} claudeKey={claudeKey} onOpenDeal={(did)=>{const d=deals.find(x=>x.id===did);if(d)sM({deal:d});}}/>;
     case"meetings":return<Meetings deals={deals} profile={profile} token={tk} elKey={elKey} claudeKey={claudeKey}/>;
-    case"marketing":return<Marketing token={tk}/>;
+    case"marketing":return<Marketing token={tk} claudeKey={claudeKey}/>;
     case"admin":return<Admin token={tk} isA={isA} claudeKey={claudeKey} elKey={elKey} onKeyChange={(k)=>sCK(k)} profile={profile}/>
     case"framework":return(<div>
   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#D0F94A,#00D49C,#00879F)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>THE FRAMEWORK</span></div>
@@ -1108,7 +1156,7 @@ return(<div>
           </div>
           {/* Sign out */}
           <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{width:sb?"100%":40,height:28,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,padding:sb?"0 10px":0,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:11,borderRadius:6}}
-            onMouseEnter={e=>{e.currentTarget.style.color="#44403c";}} onMouseLeave={e=>{e.currentTarget.style.color="var(--muted)";}}>
+            onMouseEnter={e=>{e.currentTarget.style.color="var(--dim)";}} onMouseLeave={e=>{e.currentTarget.style.color="var(--muted)";}}>
             <LogOut size={13}/>{sb&&<span>Sign out</span>}
           </button>
           {/* Toggle */}
