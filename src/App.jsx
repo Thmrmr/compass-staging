@@ -394,19 +394,44 @@ function AgentsTab({token,deals,leads,assets,debriefs,onRefresh,claudeKey}){
 }
 
 function Meetings({deals,profile,token,elKey,claudeKey}){
-  const[sel,sSel]=useState("");const[brief,sBrief]=useState("");const[busy,sBusy]=useState(false);
   const[view,sView]=useState("brief");
+  // Brief form
+  const[bf,sBf]=useState({client:"",sector:"",meetingType:"First meeting",attendees:"",previous:"",challenges:"",news:"",value:"",goal:""});
+  const[brief,sBrief]=useState("");const[genBusy,sGB]=useState(false);
+  const setBf=(k,v)=>sBf(p=>({...p,[k]:v}));
+  const clearBf=()=>{sBf({client:"",sector:"",meetingType:"First meeting",attendees:"",previous:"",challenges:"",news:"",value:"",goal:""});sBrief("");};
+  // Pre-fill from deal
+  const a=deals.filter(d=>d.status==="Active");
+  const prefill=(dealId)=>{const d=a.find(x=>x.id===dealId);if(d)sBf(p=>({...p,client:d.client_name||"",sector:d.sector||"",value:d.expected_value?String(d.expected_value):"",goal:d.next_step||""}));};
+
+  const generate=async()=>{if(!bf.client.trim()){alert("Client name required");return;}sGB(true);sBrief("");
+    const prompt="Generate a comprehensive pre-meeting brief for the HUMAIN BD team.\n\n"+
+      "CLIENT: "+bf.client+"\n"+
+      "SECTOR: "+(bf.sector||"Not specified")+"\n"+
+      "MEETING TYPE: "+bf.meetingType+"\n"+
+      (bf.attendees?"ATTENDEES: "+bf.attendees+"\n":"")+
+      (bf.previous?"PREVIOUS MEETING OUTCOMES: "+bf.previous+"\n":"")+
+      (bf.challenges?"CHALLENGES MENTIONED: "+bf.challenges+"\n":"")+
+      (bf.news?"RECENT NEWS: "+bf.news+"\n":"")+
+      (bf.value?"EXPECTED VALUE: SAR "+bf.value+"\n":"")+
+      (bf.goal?"MEETING GOAL: "+bf.goal+"\n":"")+
+      "\nProvide a structured brief with:\n"+
+      "1. CLIENT CONTEXT — 3-4 lines about their sector situation and likely priorities\n"+
+      "2. HUMAIN BELIEF STATEMENT — what we believe about their core challenge\n"+
+      "3. CONVERSATION FLOW — 4 timed steps with talk tracks (rapport, insight, diagnosis, next step)\n"+
+      "4. KEY QUESTIONS — 3 diagnostic questions that reveal the execution gap\n"+
+      "5. OBJECTION PREPARATION — 2 likely objections with responses\n"+
+      "6. RECOMMENDED NEXT STEP — specific committed action with timeline\n\n"+
+      "Be specific to Saudi Arabia and HUMAIN sovereign AI positioning. Use sector intelligence. Every recommendation must be actionable.";
+    try{const d=await callClaude(claudeKey,[{role:"user",content:prompt}],{max_tokens:2000});
+      sBrief(d.content?.map(c=>c.text||"").join("")||"No response");
+    }catch(x){sBrief("Error: "+x.message);}finally{sGB(false);}};
+
+  // Debrief
   const[dbf,sDbf]=useState({client_name:"",sector:"",confirmed:"",challenged:"",new_signal:"",next_step:"",deal_id:""});
   const[dbSv,sDbSv]=useState(false);const[debriefs,sDebriefs]=useState([]);
   const setDb=(k,v)=>sDbf(p=>({...p,[k]:v}));
-  const a=deals.filter(d=>d.status==="Active");
-
   useEffect(()=>{if(token)q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",token).then(sDebriefs).catch(()=>{});},[token]);
-
-  const gen=async()=>{const deal=a.find(d=>d.id===sel);if(!deal)return;sBusy(true);sBrief("");
-    try{const d=await callClaude(claudeKey,[{role:"user",content:"Generate a meeting brief for:\nClient: "+deal.client_name+"\nSector: "+deal.sector+"\nStage: "+deal.stage+"\nValue: SAR "+(deal.expected_value||0).toLocaleString()+"\nContact: "+(deal.contact_name||"Unknown")+"\nNext Step: "+(deal.next_step||"None")+"\n\nProvide: 1) Client Context 2) Belief Statement 3) Conversation Flow 4) Key Questions 5) Next Step. Saudi/HUMAIN specific."}],{max_tokens:1500});
-    sBrief(d.content?.map(c=>c.text||"").join("")||"No response");}catch(x){sBrief("Error: "+x.message);}finally{sBusy(false);}};
-
   const saveDebrief=async()=>{if(!dbf.client_name.trim()){alert("Client name required");return;}sDbSv(true);
     try{await q("/rest/v1/debriefs",token,{method:"POST",body:JSON.stringify({...dbf,created_by:profile?.full_name||"",created_at:new Date().toISOString()})});
     sDbf({client_name:"",sector:"",confirmed:"",challenged:"",new_signal:"",next_step:"",deal_id:""});
@@ -414,23 +439,63 @@ function Meetings({deals,profile,token,elKey,claudeKey}){
     }catch(x){alert(x.message);}finally{sDbSv(false);}};
 
   return(<div>
-    <div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Meetings</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>Brief generation and belief debrief</div></div>
-    <div style={{display:"flex",gap:6,marginBottom:20}}>
-      <button onClick={()=>sView("brief")} style={{...M,fontSize:11,padding:"7px 14px",borderRadius:8,border:"1px solid var(--border)",background:view==="brief"?"rgba(0,135,159,0.06)":"transparent",color:view==="brief"?"#00879F":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><FileText size={13}/>Brief Generator</button>
-      <button onClick={()=>sView("debrief")} style={{...M,fontSize:11,padding:"7px 14px",borderRadius:8,border:"1px solid var(--border)",background:view==="debrief"?"rgba(0,135,159,0.06)":"transparent",color:view==="debrief"?"#00879F":"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><RefreshCw size={13}/>Belief Debrief</button>
+    {/* Header */}
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><div style={{width:24,height:2,background:"linear-gradient(90deg,#00879F,#00D49C)",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.14em",color:"#00879F"}}>BEFORE & AFTER EVERY CLIENT MEETING</span></div>
+    <div style={{...T,fontSize:26,fontWeight:800,marginBottom:6}}>Meetings</div>
+    <div style={{fontSize:14,color:"var(--sub)",lineHeight:1.6,maxWidth:540,marginBottom:20}}>Prepare the brief before you walk in. Capture the debrief within 90 seconds of walking out. One workflow, one place.</div>
+
+    {/* Toggle */}
+    <div style={{display:"inline-flex",borderRadius:10,overflow:"hidden",border:"1px solid var(--border)",marginBottom:28}}>
+      <button onClick={()=>sView("brief")} style={{padding:"10px 24px",fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:view==="brief"?"#00879F":"var(--card-bg)",color:view==="brief"?"#fff":"var(--muted)",transition:"all .2s"}}>Pre-Meeting Brief</button>
+      <button onClick={()=>sView("debrief")} style={{padding:"10px 24px",fontSize:13,fontWeight:600,cursor:"pointer",border:"none",background:view==="debrief"?"#00879F":"var(--card-bg)",color:view==="debrief"?"#fff":"var(--muted)",transition:"all .2s"}}>Post-Meeting Debrief</button>
     </div>
 
-    {view==="brief"&&<div style={{...CS,padding:20}}>
-      <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>GENERATE BRIEF</div>
-      <div style={{display:"flex",gap:10,marginBottom:16}}>
-        <select value={sel} onChange={e=>sSel(e.target.value)} style={{...IP,flex:1}}><option value="">Select a deal...</option>{a.map(d=><option key={d.id} value={d.id}>{d.client_name} ({d.sector}, {d.stage})</option>)}</select>
-        <button onClick={gen} disabled={!sel||busy} style={{...BP,opacity:!sel||busy?0.5:1,whiteSpace:"nowrap"}}><FileText size={14} style={{marginRight:6}}/>{busy?"Generating...":"Generate"}</button>
+    {view==="brief"&&<div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><div style={{width:20,height:2,background:"#00D49C",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.12em",color:"#00D49C"}}>POWERED BY CLAUDE AI</span></div>
+      <div style={{...T,fontSize:20,fontWeight:800,marginBottom:4}}>Pre-Meeting Brief Generator</div>
+      <div style={{fontSize:13,color:"var(--sub)",marginBottom:20}}>Real AI brief — specific to your client, your context, your goal.</div>
+
+      {/* Quick-fill from deal */}
+      <div style={{marginBottom:16}}><label style={LB}>QUICK-FILL FROM DEAL</label>
+        <select onChange={e=>{if(e.target.value)prefill(e.target.value);}} style={{...IP,maxWidth:400}}><option value="">Select to pre-fill fields...</option>{a.map(d=><option key={d.id} value={d.id}>{d.client_name} ({d.sector}, {d.stage})</option>)}</select>
       </div>
-      {brief&&<div style={{background:"var(--panel2)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 20px",fontSize:13,lineHeight:1.7,color:"var(--sub)",whiteSpace:"pre-wrap",maxHeight:500,overflowY:"auto"}}>{brief}</div>}
+
+      <div style={{...CS,padding:"24px 28px",marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><FileText size={16} color="#00879F"/><span style={{fontSize:14,fontWeight:700}}>Meeting Details</span></div>
+        <div style={{fontSize:12,color:"var(--muted)",marginBottom:18}}>The more context you give, the sharper the brief</div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:14}}>
+          <div><label style={{...LB,color:"#00879F"}}>CLIENT / ENTITY</label><input value={bf.client} onChange={e=>setBf("client",e.target.value)} placeholder="e.g. Saudi Aramco, MOH, PIF" style={IP}/></div>
+          <div><label style={{...LB,color:"#00879F"}}>SECTOR</label><select value={bf.sector} onChange={e=>setBf("sector",e.target.value)} style={IP}><option value="">Select</option>{SECTORS.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div><label style={{...LB,color:"#00879F"}}>MEETING TYPE</label><select value={bf.meetingType} onChange={e=>setBf("meetingType",e.target.value)} style={IP}><option>First meeting</option><option>Follow-up</option><option>Technical deep-dive</option><option>Executive presentation</option></select></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+          <div><label style={{...LB,color:"#00879F"}}>WHO IS ATTENDING? (roles & seniority)</label><textarea value={bf.attendees} onChange={e=>setBf("attendees",e.target.value)} rows={3} placeholder="e.g. CTO, Head of Digital Transformation, 2 senior engineers..." style={{...IP,resize:"vertical"}}/></div>
+          <div><label style={{...LB,color:"#00879F"}}>PREVIOUS MEETING OUTCOMES</label><textarea value={bf.previous} onChange={e=>setBf("previous",e.target.value)} rows={3} placeholder="What happened in previous meetings? Agreements, objections, signals..." style={{...IP,resize:"vertical"}}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+          <div><label style={{...LB,color:"#00879F"}}>CHALLENGES THEY MENTIONED</label><textarea value={bf.challenges} onChange={e=>setBf("challenges",e.target.value)} rows={3} placeholder="Pain points, blockers, or concerns they raised..." style={{...IP,resize:"vertical"}}/></div>
+          <div><label style={{...LB,color:"#00879F"}}>RECENT NEWS ABOUT THIS ORGANISATION</label><textarea value={bf.news} onChange={e=>setBf("news",e.target.value)} rows={3} placeholder="Leadership changes, announcements, projects, budget cycles..." style={{...IP,resize:"vertical"}}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
+          <div><label style={{...LB,color:"#00879F"}}>EXPECTED DEAL VALUE (SAR)</label><input value={bf.value} onChange={e=>setBf("value",e.target.value)} placeholder="e.g. 2,000,000" style={IP}/></div>
+          <div><label style={{...LB,color:"#00879F"}}>WHAT MUST THIS MEETING ACHIEVE?</label><input value={bf.goal} onChange={e=>setBf("goal",e.target.value)} placeholder="e.g. Commit to technical session, secure diagnostic engagement" style={IP}/></div>
+        </div>
+
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={generate} disabled={genBusy||!bf.client.trim()} style={{...BP,padding:"10px 24px",opacity:genBusy||!bf.client.trim()?0.5:1}}><FileText size={14} style={{marginRight:6}}/>{genBusy?"Generating...":"Generate Brief"}</button>
+          <button onClick={clearBf} style={{...BG,padding:"10px 24px"}}>Clear</button>
+        </div>
+      </div>
+
+      {brief&&<div style={{...CS,padding:"24px 28px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><div style={{width:20,height:2,background:"#00D49C",borderRadius:1}}/><span style={{...M,fontSize:9,letterSpacing:"0.12em",color:"#00D49C"}}>AI-GENERATED BRIEF</span></div>
+        <div style={{fontSize:13.5,lineHeight:1.75,color:"var(--sub)",whiteSpace:"pre-wrap"}}>{brief}</div>
+      </div>}
     </div>}
 
     {view==="debrief"&&<div>
-      <div style={{...CS,padding:20,marginBottom:20}}>
+      <div style={{...CS,padding:"24px 28px",marginBottom:20}}>
         <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:14}}>POST-MEETING BELIEF DEBRIEF</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
           <div><label style={LB}>CLIENT NAME</label><input value={dbf.client_name} onChange={e=>setDb("client_name",e.target.value)} style={IP}/></div>
@@ -454,7 +519,8 @@ function Meetings({deals,profile,token,elKey,claudeKey}){
         </div>)}</div>
       </div>}
     </div>}
-  </div>);}
+  </div>);
+}
 
 function Admin({token}){const[users,sU]=useState([]);const[reqs,sR]=useState([]);
 useEffect(()=>{if(!token)return;q("/rest/v1/profiles?select=*&order=full_name.asc",token).then(sU).catch(()=>{});q("/rest/v1/access_requests?select=*&order=requested_at.desc",token).then(sR).catch(()=>{});},[token]);
