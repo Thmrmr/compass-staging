@@ -144,9 +144,19 @@ const DEAL_TOOL={name:"register_deal",description:"Register a new deal when the 
 const BRIEF_TOOL={name:"prepare_meeting_brief",description:"Prepare a meeting brief when user mentions preparing for a meeting or needing to prep.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string"},meeting_type:{type:"string"}},required:["client_name"]}};
 const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);sMs(p=>[...p,{role:"user",content:t}]);const a=deals.filter(d=>d.status==="Active");
   const selectedAgent=agentCtx?AGENTS.find(x=>x.key===agentCtx):null;
+    const today=new Date().toISOString().slice(0,10);
+    const upcoming=a.filter(d=>d.next_meeting&&d.next_meeting>=today).sort((x,y)=>(x.next_meeting||"").localeCompare(y.next_meeting||"")).slice(0,10);
+    const topDeals=[...a].sort((x,y)=>(y.expected_value||0)-(x.expected_value||0)).slice(0,15);
+    const stalledDeals=a.filter(d=>d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5);
+    const dealContext="CURRENT PIPELINE DATA:\n"+
+      "Today: "+today+"\n"+
+      "Total active deals: "+a.length+"\n\n"+
+      (upcoming.length>0?"UPCOMING MEETINGS (next "+upcoming.length+"):\n"+upcoming.map(d=>"- "+d.next_meeting+": "+d.client_name+" ("+(d.sector||"?")+", "+d.stage+" stage)"+(d.next_step?" — next: "+d.next_step:"")).join("\n")+"\n\n":"NO UPCOMING MEETINGS SCHEDULED.\n\n")+
+      "TOP DEALS BY VALUE:\n"+topDeals.map(d=>"- "+d.client_name+" ("+(d.sector||"?")+") — "+d.stage+" stage"+(d.expected_value?", SAR "+Number(d.expected_value).toLocaleString():"")+(d.deal_score?", score "+d.deal_score:"")+(d.contact_name?", contact: "+d.contact_name:"")).join("\n")+
+      (stalledDeals.length>0?"\n\nSTALLED DEALS (no update >14 days):\n"+stalledDeals.map(d=>"- "+d.client_name+" ("+Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)+" days stalled)").join("\n"):"");
     const sys=selectedAgent
-      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+". "+a.length+" active deals.\n\n"+COMPASS_KB+"\n\nRespond from your agent perspective using the knowledge base above. Reference specific sector beliefs, principles, and tactics when relevant. Be specific and actionable."
-      :"You are COMPASS AI, the sovereign intelligence layer for HUMAIN CRM. User: "+(profile?.full_name||"")+". "+a.length+" active deals.\n\n"+COMPASS_KB+"\n\nWhen the user mentions meeting a client, new opportunity, or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Use the knowledge base above to answer questions about sector beliefs, engagement principles, meeting tactics, and HUMAIN products. Be specific and actionable. Be concise.";
+      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+".\n\n"+dealContext+"\n\n"+COMPASS_KB+"\n\nRespond from your agent perspective using the pipeline data and knowledge base above. Reference specific clients, meetings, sector beliefs, and principles. Be specific and actionable."
+      :"You are COMPASS AI, the sovereign intelligence layer for HUMAIN CRM. User: "+(profile?.full_name||"")+".\n\n"+dealContext+"\n\n"+COMPASS_KB+"\n\nWhen the user asks about upcoming meetings, next sessions, or scheduled activity, use the UPCOMING MEETINGS data above. When they ask about specific clients, reference the pipeline data. When they mention a new opportunity or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Use the knowledge base for sector beliefs, engagement principles, meeting tactics, and HUMAIN products. Be specific and actionable. Be concise.";
   try{const body={apiKey:claudeKey||"",model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[...ms.slice(-10),{role:"user",content:t}],system:sys,tools:[DEAL_TOOL,BRIEF_TOOL]};
     const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok){const err=await r.text();throw new Error(err||"Claude API error");}const d=await r.json();
     let txt=[];let toolUse=null;
