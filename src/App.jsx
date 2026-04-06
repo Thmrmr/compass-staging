@@ -122,15 +122,248 @@ return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWei
 {mktModal&&<MktModal type={mktModal.type} item={mktModal.item} onClose={()=>sMktModal(null)} onSave={()=>{sMktModal(null);loadMkt();}} token={token}/>}
 </div>);}
 
-function AgentsTab({token,deals}){const[queue,sQueue]=useState([]);
-useEffect(()=>{if(token)q("/rest/v1/agent_queue?select=*&order=created_at.desc&limit=30",token).then(sQueue).catch(()=>{});},[token]);
-return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Agents</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>12 sovereign intelligence agents</div></div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:28}}>{AGENTS.map(a=>{const I=a.icon;return(<div key={a.key} style={{...CS,padding:"16px 18px",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,135,159,0.2)";e.currentTarget.style.transform="translateY(-1px)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.transform="none";}}>
-<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><div style={{width:30,height:30,borderRadius:8,background:`${a.color}12`,display:"flex",alignItems:"center",justifyContent:"center",color:a.color}}><I size={15}/></div><div><div style={{fontSize:13,fontWeight:600}}>{a.name}</div><span style={{...M,fontSize:9,color:a.type==="hourly"?"#00D49C":"#FFB800"}}>{a.type.toUpperCase()}</span></div></div>
-<div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{a.desc}</div>
-</div>);})}</div>
-{queue.length>0&&<><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>RECENT QUEUE ({queue.length})</div><div style={CS}>{queue.slice(0,10).map((item,i)=><div key={i} style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><span style={{fontSize:13,fontWeight:600}}>{item.agent_key}</span><span style={{...M,fontSize:10,color:"var(--muted)",marginLeft:8}}>{item.status}</span></div><span style={{...M,fontSize:10,color:"var(--muted)"}}>{item.created_at?new Date(item.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</span></div>)}</div></>}
-</div>);}
+
+// ═══ AGENT EXECUTION ENGINE ═══
+async function queueAgentAction(token,agentName,actionType,dealId,title,description,suggestedAction,priority){
+  try{
+    const{data:existing}=await fetch(`${SU}/rest/v1/agent_queue?agent_name=eq.${encodeURIComponent(agentName)}&title=eq.${encodeURIComponent(title)}&status=eq.pending&select=id&limit=1`,{headers:{apikey:SK,Authorization:`Bearer ${token}`}}).then(r=>r.json()).catch(()=>({data:[]}));
+    if(existing&&existing.length>0)return;
+  }catch(e){}
+  await q("/rest/v1/agent_queue",token,{method:"POST",body:JSON.stringify({agent_name:agentName,action_type:actionType,deal_id:dealId||null,title,description,suggested_action:suggestedAction||null,priority:priority||"medium",status:"pending",created_at:new Date().toISOString()})});
+}
+
+async function runPipelineGuardian(token,deals){
+  const active=deals.filter(d=>d.status==="Active");const now=Date.now();const DAY=86400000;let count=0;
+  for(const d of active){
+    const stale=Math.floor((now-new Date(d.updated_at||d.created_at).getTime())/DAY);
+    if(stale>=10){
+      const prio=stale>=21?"critical":stale>=14?"high":"medium";
+      await queueAgentAction(token,"Pipeline Guardian","flag_stale",d.id,
+        d.client_name+": "+stale+" days without activity",
+        "Deal stalled "+stale+" days. Deals beyond 14 days have significantly lower close rates. Sector: "+(d.sector||"unknown")+". Stage: "+d.stage+".",
+        "Re-engage with "+d.client_name+" or update status to Stalled.",prio);
+      count++;
+    }
+    if(d.next_meeting){const over=Math.floor((now-new Date(d.next_meeting).getTime())/DAY);
+      if(over>0){await queueAgentAction(token,"Pipeline Guardian","overdue_meeting",d.id,
+        d.client_name+": meeting "+over+" days overdue",
+        "Scheduled meeting was "+over+" days ago with no update. Contact: "+(d.contact_name||"unknown")+".",
+        "Reschedule or log the meeting outcome.","high");count++;}
+    }
+  }
+  return count+" issues flagged across "+active.length+" active deals";
+}
+
+async function runDealScorer(token,deals){
+  const active=deals.filter(d=>d.status==="Active");let updated=0;
+  const stageOrder={Recognition:0,Proof:1,Integration:2,Dependency:3,Expansion:4};
+  for(const d of active){
+    let score=0;const now=Date.now();const DAY=86400000;
+    const daysSince=Math.floor((now-new Date(d.updated_at||d.created_at).getTime())/DAY);
+    if(daysSince<=3)score+=4;else if(daysSince<=7)score+=3;else if(daysSince<=14)score+=2;else if(daysSince<=21)score+=1;
+    score+=Math.min(stageOrder[d.stage]||0,3);
+    if(d.next_step&&d.next_step.trim())score+=2;
+    if(d.tags&&d.tags.trim())score+=2;
+    if(d.expected_value&&Number(d.expected_value)>0)score+=2;
+    if(d.contact_name&&d.contact_name.trim())score+=1;
+    score=Math.min(Math.round(score/16*100),100);
+    const diff=Math.abs(score-(d.deal_score||0));
+    if(diff>=5){
+      const dir=score>(d.deal_score||0)?"up":"down";
+      await q(`/rest/v1/deals?id=eq.${d.id}`,token,{method:"PATCH",body:JSON.stringify({deal_score:score,updated_at:new Date().toISOString()})});
+      await queueAgentAction(token,"Deal Scorer","score_update",d.id,
+        d.client_name+": score "+(d.deal_score||0)+" -> "+score+" ("+dir+")",
+        "Score changed based on: activity recency ("+daysSince+"d), stage ("+d.stage+"), completeness.",
+        dir==="down"?"Update deal details or re-engage client.":null,"medium");
+      updated++;
+    }
+  }
+  return updated+" deals rescored out of "+active.length;
+}
+
+async function runFollowThrough(token,deals){
+  const active=deals.filter(d=>d.status==="Active");const now=Date.now();const DAY=86400000;let count=0;
+  for(const d of active){
+    if(d.next_step&&d.next_step.trim()&&d.updated_at){
+      const days=Math.floor((now-new Date(d.updated_at).getTime())/DAY);
+      if(days>=7){
+        await queueAgentAction(token,"Follow-through","overdue_step",d.id,
+          d.client_name+": next step pending "+days+" days",
+          "Committed next step: \""+d.next_step.slice(0,100)+"\" — "+days+" days without update.",
+          "Complete the next step or update it.","high");
+        count++;
+      }
+    }
+  }
+  return count+" overdue next steps found";
+}
+
+async function runLeadNurture(token,leads){
+  let count=0;
+  const hot=leads.filter(l=>l.status==="Hot"||l.status==="Ready");
+  for(const l of hot){
+    if(!l.converted_deal_id){
+      await queueAgentAction(token,"Lead Nurture","convert_ready",null,
+        (l.name||"Unknown")+": "+l.status+" lead ready for conversion",
+        "Lead from "+(l.organization||"?")+", sector: "+(l.sector||"?")+". Source: "+(l.source_type||"?")+". Status: "+l.status+".",
+        "Convert to deal in CRM at Recognition stage.",l.status==="Ready"?"high":"medium");
+      count++;
+    }
+  }
+  return count+" leads flagged for conversion";
+}
+
+async function runContentGap(token,deals,assets){
+  const activeSectors=[...new Set(deals.filter(d=>d.status==="Active").map(d=>d.sector).filter(Boolean))];
+  const assetSectors=[...new Set((assets||[]).map(a=>a.sector).filter(Boolean))];
+  const gaps=activeSectors.filter(s=>!assetSectors.includes(s));let count=0;
+  for(const s of gaps){
+    const dealCount=deals.filter(d=>d.status==="Active"&&d.sector===s).length;
+    await queueAgentAction(token,"Content Gap","sector_gap",null,
+      s+": "+dealCount+" active deals, zero content assets",
+      "Sector "+s+" has "+dealCount+" deals in pipeline but no content assets (decks, proposals, case studies) to support them.",
+      "Create at least a one-pager and pitch deck for "+s+" sector.","high");
+    count++;
+  }
+  return count+" sector content gaps identified";
+}
+
+async function runAIAgent(token,agentName,prompt){
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:prompt}]})});
+    const d=await r.json();const text=d.content?.map(c=>c.text||"").join("")||"No response";
+    await q("/rest/v1/agent_queue",token,{method:"POST",body:JSON.stringify({
+      agent_name:agentName,action_type:"ai_analysis",title:agentName+" Analysis — "+new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"short"}),
+      description:text.slice(0,2000),priority:"medium",status:"pending",created_at:new Date().toISOString()})});
+    return "Analysis complete";
+  }catch(e){return"Error: "+e.message;}
+}
+
+async function runAllAgents(token,deals,leads,assets,debriefs){
+  const results={};
+  results.pipeline_guardian=await runPipelineGuardian(token,deals);
+  results.deal_scorer=await runDealScorer(token,deals);
+  results.followthrough=await runFollowThrough(token,deals);
+  results.lead_nurture=await runLeadNurture(token,leads||[]);
+  results.content_gap=await runContentGap(token,deals,assets||[]);
+
+  const active=deals.filter(d=>d.status==="Active");
+  const dealCtx=active.slice(0,10).map(d=>d.client_name+" ("+d.sector+", "+d.stage+", SAR "+(d.expected_value||0).toLocaleString()+")").join("; ");
+
+  results.sector_radar=await runAIAgent(token,"Sector Radar",
+    "Analyze sector patterns in these deals: "+dealCtx+". Identify which sectors are strongest, which are underserved, and recommend where to focus next. Be concise, 3-5 bullet points.");
+
+  if(debriefs&&debriefs.length>0){
+    const dbCtx=debriefs.slice(0,5).map(d=>d.sector+": confirmed="+((d.confirmed||"").slice(0,80))+", challenged="+((d.challenged||"").slice(0,80))+", new="+((d.new_signal||"").slice(0,80))).join("\n");
+    results.debrief_analyst=await runAIAgent(token,"Debrief Analyst",
+      "Analyze these recent meeting debriefs and extract patterns:\n"+dbCtx+"\nWhat themes emerge? What beliefs need updating? 3-5 insights.");
+    results.belief_evolution=await runAIAgent(token,"Belief Evolution",
+      "Based on these debrief signals:\n"+dbCtx+"\nWhich sector beliefs are being confirmed vs challenged? Recommend belief updates. Be specific.");
+  }else{results.debrief_analyst="No debriefs to analyze";results.belief_evolution="No debrief data";}
+
+  const wonLost=deals.filter(d=>d.status==="Won"||d.status==="Lost");
+  if(wonLost.length>2){
+    const wlCtx=wonLost.slice(0,8).map(d=>d.client_name+" ("+d.sector+") = "+d.status+", value: SAR "+(d.expected_value||0).toLocaleString()).join("; ");
+    results.winloss_intel=await runAIAgent(token,"Win/Loss Intel","Analyze won/lost patterns: "+wlCtx+". What differentiates wins from losses? 3-5 insights.");
+  }else{results.winloss_intel="Not enough won/lost data";}
+
+  results.team_coach=await runAIAgent(token,"Team Coach",
+    "Pipeline has "+active.length+" active deals. "+deals.filter(d=>d.status==="Won").length+" won, "+deals.filter(d=>d.status==="Lost").length+" lost. Average deal value: SAR "+Math.round(active.reduce((s,d)=>s+(d.expected_value||0),0)/Math.max(active.length,1)).toLocaleString()+". Provide 3 coaching recommendations for the BD team.");
+
+  results.campaign_roi=await runAIAgent(token,"Campaign ROI",
+    "We have "+active.length+" active deals across sectors. Leads feed from campaigns. Recommend how to measure and improve campaign ROI for a sovereign AI company in Saudi Arabia. 3-5 actionable points.");
+
+  results.brief_architect="Briefs generated on-demand via Meetings tab";
+  return results;
+}
+
+function AgentsTab({token,deals,leads,assets,debriefs,onRefresh}){
+  const[queue,sQueue]=useState([]);const[running,sRunning]=useState(null);const[results,sResults]=useState({});const[runAll,sRunAll]=useState(false);
+  const loadQueue=useCallback(()=>{if(token)q("/rest/v1/agent_queue?select=*&order=created_at.desc&limit=40",token).then(sQueue).catch(()=>{});},[token]);
+  useEffect(()=>{loadQueue();},[loadQueue]);
+
+  const execOne=async(agent)=>{sRunning(agent.key);
+    try{
+      let res="";
+      switch(agent.key){
+        case"pipeline_guardian":res=await runPipelineGuardian(token,deals);break;
+        case"deal_scorer":res=await runDealScorer(token,deals);break;
+        case"followthrough":res=await runFollowThrough(token,deals);break;
+        case"lead_nurture":res=await runLeadNurture(token,leads||[]);break;
+        case"content_gap":res=await runContentGap(token,deals,assets||[]);break;
+        case"brief_architect":res="Briefs generated on-demand in Meetings tab";break;
+        default:{
+          const active=deals.filter(d=>d.status==="Active");
+          const ctx=active.slice(0,10).map(d=>d.client_name+" ("+d.sector+", "+d.stage+")").join("; ");
+          res=await runAIAgent(token,agent.name,"You are "+agent.name+" agent. "+agent.desc+". Analyze: "+ctx+". Provide 3-5 actionable insights. Be concise.");
+        }
+      }
+      sResults(p=>({...p,[agent.key]:res}));loadQueue();if(onRefresh)onRefresh();
+    }catch(e){sResults(p=>({...p,[agent.key]:"Error: "+e.message}));}
+    finally{sRunning(null);}
+  };
+
+  const execAll=async()=>{sRunAll(true);
+    try{const res=await runAllAgents(token,deals,leads,assets,debriefs);sResults(res);loadQueue();if(onRefresh)onRefresh();}
+    catch(e){console.error(e);}finally{sRunAll(false);}
+  };
+
+  const dismiss=async(id)=>{
+    try{await q(`/rest/v1/agent_queue?id=eq.${id}`,token,{method:"PATCH",body:JSON.stringify({status:"dismissed"})});loadQueue();}catch(e){}
+  };
+
+  return(<div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+      <div><div style={{...T,fontSize:22,fontWeight:800}}>Agents</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>12 sovereign intelligence agents</div></div>
+      <button onClick={execAll} disabled={runAll} style={{...BP,opacity:runAll?0.6:1}}><Zap size={14} style={{marginRight:6}}/>{runAll?"Running all...":"Run All Agents"}</button>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:28}}>
+      {AGENTS.map(a=>{const I=a.icon;const isRunning=running===a.key;const hasResult=results[a.key];
+      return(<div key={a.key} style={{...CS,padding:"16px 18px",transition:"all .2s",position:"relative"}}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,135,159,0.2)";}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+          <div style={{width:30,height:30,borderRadius:8,background:a.color+"12",display:"flex",alignItems:"center",justifyContent:"center",color:a.color}}><I size={15}/></div>
+          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{a.name}</div><span style={{...M,fontSize:9,color:a.type==="hourly"?"#00D49C":"#FFB800"}}>{a.type.toUpperCase()}</span></div>
+          <button onClick={()=>execOne(a)} disabled={isRunning||runAll} style={{padding:"4px 8px",borderRadius:5,border:"1px solid var(--border)",background:isRunning?"rgba(0,135,159,0.06)":"transparent",cursor:isRunning?"wait":"pointer",color:isRunning?"#00879F":"var(--muted)",fontSize:10,...M}}>{isRunning?"Running...":"Run"}</button>
+        </div>
+        <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{a.desc}</div>
+        {hasResult&&<div style={{marginTop:8,padding:"6px 10px",background:"rgba(0,212,156,0.04)",border:"1px solid rgba(0,212,156,0.1)",borderRadius:6,fontSize:11,color:"#00D49C",...M}}>{typeof hasResult==="string"?hasResult.slice(0,100):hasResult}</div>}
+      </div>);})}
+    </div>
+
+    {queue.filter(q2=>q2.status==="pending").length>0&&<>
+      <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>PENDING ACTIONS ({queue.filter(q2=>q2.status==="pending").length})</div>
+      <div style={CS}>{queue.filter(q2=>q2.status==="pending").map(item=>(
+        <div key={item.id} style={{padding:"14px 18px",borderBottom:"1px solid var(--border)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                <span style={{...M,fontSize:9,padding:"2px 6px",borderRadius:3,background:item.priority==="critical"?"rgba(255,75,75,0.08)":item.priority==="high"?"rgba(255,184,0,0.08)":"rgba(0,135,159,0.06)",color:item.priority==="critical"?"#FF4B4B":item.priority==="high"?"#FFB800":"#00879F"}}>{item.priority?.toUpperCase()}</span>
+                <span style={{...M,fontSize:9,color:"var(--muted)"}}>{item.agent_name}</span>
+              </div>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{item.title}</div>
+              <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.5}}>{(item.description||"").slice(0,200)}</div>
+              {item.suggested_action&&<div style={{fontSize:11,color:"#00D49C",marginTop:4,...M}}>{item.suggested_action.slice(0,150)}</div>}
+            </div>
+            <button onClick={()=>dismiss(item.id)} style={{padding:"4px 8px",borderRadius:5,border:"1px solid var(--border)",background:"none",cursor:"pointer",color:"var(--muted)",fontSize:10,...M,marginLeft:10,flexShrink:0}}>Dismiss</button>
+          </div>
+        </div>
+      ))}</div>
+    </>}
+
+    {queue.filter(q2=>q2.status!=="pending").length>0&&<div style={{marginTop:20}}>
+      <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:10}}>HISTORY</div>
+      <div style={CS}>{queue.filter(q2=>q2.status!=="pending").slice(0,10).map(item=>(
+        <div key={item.id} style={{padding:"10px 18px",borderBottom:"1px solid var(--border)",opacity:0.6}}>
+          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:12,fontWeight:500}}>{item.title}</span><span style={{...M,fontSize:9,color:"var(--muted)"}}>{item.status}</span></div>
+        </div>
+      ))}</div>
+    </div>}
+  </div>);
+}
 
 function Meetings({deals,profile,token}){
   const[sel,sSel]=useState("");const[brief,sBrief]=useState("");const[busy,sBusy]=useState(false);
@@ -238,7 +471,8 @@ const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I si
 export default function App(){
   const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[elKey,sElKey]=useState('');
   const tk=session?.access_token;const isA=profile?.role==="admin";
-  const ld=useCallback(()=>{if(tk)q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);},[tk]);
+  const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[debriefs,sDeb]=useState([]);
+  const ld=useCallback(()=>{if(tk){q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);q("/rest/v1/leads?select=*&order=created_at.desc",tk).then(d=>sLeads(d||[])).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",tk).then(d=>sAssets(d||[])).catch(()=>{});q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",tk).then(d=>sDeb(d||[])).catch(()=>{});}},[tk]);
   useEffect(()=>{if(!tk)return;const uid=session.user?.id;q('/rest/v1/system_config?config_key=eq.elevenlabs_api_key&select=config_value',tk).then(d=>{if(d?.[0]?.config_value)sElKey(d[0].config_value.trim());}).catch(()=>{});q(`/rest/v1/profiles?id=eq.${uid}&select=*`,tk).then(d=>{if(d?.[0])sP(d[0]);}).catch(console.error);ld();},[tk]);
   // Poll notifications
   useEffect(()=>{if(!tk||!isA)return;const poll=()=>q("/rest/v1/access_requests?status=eq.Pending&select=id",tk).then(d=>sN(d?.length||0)).catch(()=>{});poll();const iv=setInterval(poll,60000);return()=>clearInterval(iv);},[tk,isA]);
@@ -251,7 +485,7 @@ export default function App(){
     case"home":return(<div><div style={{marginBottom:28}}><div style={{...T,fontSize:26,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>{gr}, {nm.split(" ")[0]}</div><div style={{fontSize:14,color:"var(--muted)"}}>Your sovereign intelligence layer is ready.</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={ac.length} l="ACTIVE DEALS" c="#00879F"/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE VALUE" c="#00D49C"/><KPI v={wo.length} l="WON DEALS" c="#D0F94A"/><KPI v={SECTORS.filter(s=>ac.some(d=>d.sector===s)).length} l="SECTORS ACTIVE" c="#00879F"/></div><Chat deals={deals} profile={profile} elKey={elKey}/></div>);
     case"crm":return(<div><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}><div><div style={{...T,fontSize:22,fontWeight:800}}>Pipeline</div><div style={{fontSize:13,color:"var(--muted)",marginTop:2}}>{ac.length} active · SAR {pv.toLocaleString()}</div></div><button onClick={()=>sM({deal:null})} style={BP}><Plus size={14} style={{marginRight:6}}/>New Deal</button></div><Kanban deals={deals} onOpen={d=>sM({deal:d})}/><div style={{...M,fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",marginBottom:10}}>ALL DEALS ({deals.length})</div><div style={CS}><table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}><thead><tr style={{borderBottom:"1px solid var(--border)"}}>{["Client","Sector","Stage","Value","Score"].map(h=><th key={h} style={{...M,padding:"10px 14px",textAlign:"left",fontSize:10,letterSpacing:"0.08em",color:"var(--muted)",fontWeight:500}}>{h}</th>)}</tr></thead><tbody>{deals.slice(0,60).map(d=><tr key={d.id} style={{borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>sM({deal:d})} onMouseEnter={e=>e.currentTarget.style.background="rgba(0,135,159,0.015)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><td style={{padding:"10px 14px",fontWeight:600}}>{d.client_name}</td><td style={{padding:"10px 14px",color:"var(--sub)"}}>{d.sector||"—"}</td><td style={{padding:"10px 14px"}}><span style={{...M,fontSize:10,padding:"3px 8px",borderRadius:4,background:`${SC[d.stage]||"#999"}12`,color:SC[d.stage]||"#999"}}>{d.stage}</span></td><td style={{padding:"10px 14px",...M,color:"var(--sub)"}}>{d.expected_value>0?`SAR ${Number(d.expected_value).toLocaleString()}`:"—"}</td><td style={{padding:"10px 14px",...M,color:d.deal_score>=70?"#00D49C":d.deal_score>=40?"#FFB800":"var(--muted)"}}>{d.deal_score||"—"}</td></tr>)}</tbody></table></div></div>);
     case"dashboard":return(<div><div style={{marginBottom:20}}><div style={{...T,fontSize:22,fontWeight:800}}>Dashboard</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}><KPI v={deals.length} l="TOTAL DEALS" s={`${ac.length} active`}/><KPI v={`SAR ${(pv/1e6).toFixed(1)}M`} l="PIPELINE" c="#00879F"/><KPI v={`${deals.length?Math.round(wo.length/deals.length*100):0}%`} l="WIN RATE" c="#00D49C"/><KPI v={ac.filter(d=>d.deal_score>=70).length} l="HIGH SCORE" c="#D0F94A"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY STAGE</div>{STAGES.map(s=>{const c=ac.filter(d=>d.stage===s).length;const p=ac.length?Math.round(c/ac.length*100):0;return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:SC[s],width:80,flexShrink:0}}>{s}</span><div style={{flex:1,height:6,background:"var(--panel2)",borderRadius:3,overflow:"hidden"}}><div style={{width:`${p}%`,height:"100%",background:SC[s],borderRadius:3}}/></div><span style={{...M,fontSize:10,color:"var(--muted)",width:24,textAlign:"right"}}>{c}</span></div>);})}</div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>BY SECTOR</div>{SECTORS.map(s=>{const c=ac.filter(d=>d.sector===s).length;const v=ac.filter(d=>d.sector===s).reduce((x,d)=>x+(d.expected_value||0),0);return(<div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{...M,fontSize:10,color:XC[s],width:90,flexShrink:0}}>{s}</span><div style={{flex:1,fontSize:12,color:"var(--sub)"}}>{c}</div><span style={{...M,fontSize:10,color:"var(--muted)"}}>SAR {(v/1e6).toFixed(1)}M</span></div>);})}</div></div><div style={{...CS,padding:20}}><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:12}}>STALLED</div>{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5).map(d=><div key={d.id} onClick={()=>sM({deal:d})} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}}><span style={{fontWeight:600,fontSize:13}}>{d.client_name}</span><span style={{...M,fontSize:10,color:"#FF4B4B"}}>{Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)}d</span></div>)}{deals.filter(d=>d.status==="Active"&&d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).length===0&&<div style={{fontSize:13,color:"var(--muted)",textAlign:"center",padding:16}}>All deals active</div>}</div></div>);
-    case"agents":return<AgentsTab token={tk} deals={deals}/>;
+    case"agents":return<AgentsTab token={tk} deals={deals} leads={leads} assets={assets} debriefs={debriefs} onRefresh={ld}/>;
     case"meetings":return<Meetings deals={deals} profile={profile} token={tk}/>;
     case"marketing":return<Marketing token={tk}/>;
     case"admin":return<Admin token={tk}/>;
