@@ -816,7 +816,7 @@ function FwAcc({b}){const[open,setOpen]=useState(false);return(
 const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...T,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...M,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — COMING SOON</div></div>;
 
 export default function App(){
-  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[sb,sSb]=useState(true);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[dealFilter,sDealFilter]=useState("");const[stageFilter,setStageFilter]=useState("");const[statusFilter,setStatusFilter]=useState("");const[dealSort,sDealSort]=useState("updated");const[chatActive,sChatActive]=useState(false);const[homeCat,sHomeCat]=useState("foryou");const[dashPeriod,sDashPeriod]=useState("all");const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[notifOpen,sNotifOpen]=useState(false);const[accessReqs,sAR]=useState([]);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
+  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[navH,sNavH]=useState(false);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[dealFilter,sDealFilter]=useState("");const[stageFilter,setStageFilter]=useState("");const[statusFilter,setStatusFilter]=useState("");const[dealSort,sDealSort]=useState("updated");const[chatActive,sChatActive]=useState(false);const[homeCat,sHomeCat]=useState("foryou");const[dashPeriod,sDashPeriod]=useState("all");const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[notifOpen,sNotifOpen]=useState(false);const[accessReqs,sAR]=useState([]);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
   const tk=session?.access_token;const isA=profile?.role==="admin";
   const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[debriefs,sDeb]=useState([]);const[suggestions,sSugg]=useState([]);const[savedBriefs2,sSB2]=useState([]);
   const ld=useCallback(()=>{if(tk){q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);q("/rest/v1/leads?select=*&order=created_at.desc",tk).then(d=>sLeads(d||[])).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",tk).then(d=>sAssets(d||[])).catch(()=>{});q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",tk).then(d=>sDeb(d||[])).catch(()=>{});q('/rest/v1/agent_queue?status=eq.pending&select=*&order=created_at.desc&limit=8',tk).then(d=>sSugg(d||[]));q('/rest/v1/access_requests?select=*&order=requested_at.desc&limit=20',tk).then(d=>sAR(d||[])).then(d=>sSugg(d||[])).catch(()=>{});q('/rest/v1/briefs?select=id,client_name,sector&order=created_at.desc&limit=10',tk).then(d=>sSB2(d||[])).catch(()=>{});}},[tk]);
@@ -1107,84 +1107,65 @@ return(<div>
   }};
 
   return(<div style={{...th,fontFamily:"'DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-    <nav style={{width:sb?230:56,background:"var(--panel)",borderRight:"1px solid rgba(0,135,159,0.06)",display:"flex",flexDirection:"column",transition:"width .28s cubic-bezier(.4,0,.2,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
-        {/* ── H Logo ── */}
-        <div onClick={()=>sSb(!sb)} style={{display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,padding:sb?"12px 16px":"12px 0",height:52,cursor:"pointer",borderBottom:"1px solid rgba(0,135,159,0.06)",flexShrink:0}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
-          {sb&&<span style={{...T,fontSize:12,letterSpacing:"0.08em",fontWeight:800}}>HUMAIN</span>}
+    <nav onMouseEnter={()=>sNavH(true)} onMouseLeave={()=>sNavH(false)} style={{width:navH?200:60,background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 0",gap:4,transition:"width .2s ease",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
+        {/* ── Logo ── */}
+        <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,alignSelf:"flex-start",marginLeft:12,flexShrink:0}}>
+          <svg width="26" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
         </div>
-
-        {/* ── Home ── */}
-        <div style={{padding:"6px 8px",flexShrink:0}}>
-          <button onClick={()=>{sT("home");sChatActive(false);}} style={{width:sb?"100%":40,height:36,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,color:tab==="home"?"#00879F":"var(--dim)",background:tab==="home"?"rgba(0,135,159,0.06)":"rgba(0,135,159,0.03)",border:"1px solid rgba(0,135,159,0.06)",cursor:"pointer",overflow:"hidden",padding:sb?"0 10px":0,transition:"all .18s"}}
-            onMouseEnter={e=>{if(tab!=="home"){e.currentTarget.style.background="rgba(0,135,159,0.08)";e.currentTarget.style.color="#00879F";}}}
-            onMouseLeave={e=>{if(tab!=="home"){e.currentTarget.style.background="rgba(0,135,159,0.03)";e.currentTarget.style.color="var(--dim)";}}}>
-            <Home size={18} strokeWidth={1.8}/>{sb&&<span style={{fontSize:12,fontWeight:500}}>Home</span>}
-          </button>
-        </div>
-
-        {sb&&<div style={{...T,fontSize:8,letterSpacing:"0.14em",color:"var(--muted)",opacity:0.6,padding:"10px 16px 4px"}}>WORKSPACE</div>}
 
         {/* ── Nav Items ── */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:2,overflowY:"auto",overflowX:"hidden",padding:sb?"4px 8px":"6px 8px",alignItems:sb?"stretch":"center",scrollbarWidth:"none"}}>
-          {TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)).map(t=>{const I=t.icon;const on=tab===t.id;const isAd=t.id==="admin";
-          return(<div key={t.id}>
-            {isAd&&sb&&<div style={{...T,fontSize:8,letterSpacing:"0.14em",color:"var(--muted)",opacity:0.6,padding:"8px 8px 2px",marginTop:4}}>ADMIN</div>}
-            {isAd&&!sb&&<div style={{width:32,margin:"4px auto",height:1,background:"rgba(0,135,159,0.06)"}}/>}
-            <button onClick={()=>{sT(t.id);sChatActive(false);}} style={{background:on?"#023c47":"none",width:sb?"100%":40,height:40,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:sb?10:0,cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",flexShrink:0,border:"none",position:"relative",transition:"all .18s",padding:sb?"0 10px":0,color:on?"#D0F94A":"var(--muted)"}}
-              onMouseEnter={e=>{if(!on){e.currentTarget.style.color="var(--text)";e.currentTarget.style.background="rgba(0,135,159,0.04)";}}}
-              onMouseLeave={e=>{if(!on){e.currentTarget.style.color="var(--muted)";e.currentTarget.style.background="none";}}}>
-              <I size={18} strokeWidth={on?2:1.5}/>
-              {sb&&<span style={{fontSize:12,fontWeight:on?600:500,color:on?"#fff":"#4A5E6E"}}>{t.label}</span>}
-              {t.id==="admin"&&notif>0&&<span style={{position:"absolute",right:sb?10:2,top:2,minWidth:15,height:15,borderRadius:8,background:"#FF4B4B",color:"#fff",fontSize:8,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{notif}</span>}
-            </button>
-          </div>);})}
+        {[{id:"home",label:"Home",icon:Home},...TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)),{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
+          <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:on?"#00879F":"var(--sub)",background:on?"rgba(0,135,159,0.08)":"transparent",border:"none",position:"relative",whiteSpace:"nowrap",transition:"background .15s, color .15s"}}
+            onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(0,0,0,0.04)";e.currentTarget.style.color="var(--text)";}}}
+            onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--sub)";}}}>
+            <I size={20} strokeWidth={1.8} style={{flexShrink:0}}/>
+            <span style={{opacity:navH?1:0,fontSize:13,fontWeight:500,transition:"opacity .15s",pointerEvents:"none"}}>{t.label}</span>
+            {t.id==="admin"&&notif>0&&<span style={{position:"absolute",top:6,left:30,width:14,height:14,background:"#00879F",color:"#fff",borderRadius:"50%",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}
+          </button>);})}
+
+        {/* ── Daily Intel ── */}
+        <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:intel?"#00D49C":"var(--sub)",background:intel?"rgba(0,212,156,0.08)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s"}}
+          onMouseEnter={e=>{if(!intel){e.currentTarget.style.background="rgba(0,0,0,0.04)";e.currentTarget.style.color="#00D49C";}}}
+          onMouseLeave={e=>{if(!intel){e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--sub)";}}}>
+          <div style={{position:"relative",flexShrink:0}}><Activity size={20} strokeWidth={1.8}/><div style={{position:"absolute",top:-2,right:-2,width:6,height:6,borderRadius:3,background:"#00D49C",animation:"pulse 2s ease-in-out infinite"}}/></div>
+          <span style={{opacity:navH?1:0,fontSize:13,fontWeight:500,transition:"opacity .15s",pointerEvents:"none"}}>Daily Intel</span>
+        </button>
+
+        {/* ── Spacer ── */}
+        <div style={{flex:1}}/>
+
+        {/* ── Theme ── */}
+        <div style={{display:"flex",gap:2,marginBottom:4}}>
+          <button onClick={()=>sDk(false)} style={{padding:"4px 7px",borderRadius:5,border:"none",cursor:"pointer",background:!dark?"rgba(0,135,159,0.1)":"transparent",color:!dark?"#00879F":"#a9a29d"}}><Sun size={13}/></button>
+          <button onClick={()=>sDk(true)} style={{padding:"4px 7px",borderRadius:5,border:"none",cursor:"pointer",background:dark?"rgba(0,135,159,0.1)":"transparent",color:dark?"#00879F":"#a9a29d"}}><Moon size={13}/></button>
         </div>
 
-        {/* ── Bottom Controls ── */}
-        <div style={{borderTop:"1px solid rgba(0,135,159,0.06)",padding:sb?"8px 12px":"8px",display:"flex",flexDirection:"column",gap:3,flexShrink:0,alignItems:sb?"stretch":"center"}}>
-          {/* Framework + Engage OS */}
-          {[{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
-            <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{width:sb?"100%":40,height:36,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:on?"#023c47":"transparent",border:"none",cursor:"pointer",color:on?"#D0F94A":"var(--muted)",padding:sb?"0 10px":0,transition:"all .18s"}}
-              onMouseEnter={e=>{if(!on){e.currentTarget.style.color="var(--text)";e.currentTarget.style.background="rgba(0,135,159,0.04)";}}}
-              onMouseLeave={e=>{if(!on){e.currentTarget.style.color="var(--muted)";e.currentTarget.style.background="transparent";}}}>
-              <I size={16} strokeWidth={on?2:1.5}/>{sb&&<span style={{fontSize:12,fontWeight:on?600:500,color:on?"#fff":"#4A5E6E"}}>{t.label}</span>}
-            </button>);})}
-          {/* Daily Intel */}
-          <button onClick={()=>sIntel(!intel)} style={{width:sb?"100%":40,height:36,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:intel?"rgba(0,212,156,0.08)":"transparent",border:"none",cursor:"pointer",color:intel?"#00D49C":"var(--muted)",padding:sb?"0 10px":0,transition:"all .18s"}}
-            onMouseEnter={e=>{if(!intel)e.currentTarget.style.color="#00D49C";}}
-            onMouseLeave={e=>{if(!intel)e.currentTarget.style.color="var(--muted)";}}>
-            <div style={{position:"relative"}}><Activity size={16} strokeWidth={1.5}/><div style={{position:"absolute",top:-2,right:-2,width:6,height:6,borderRadius:3,background:"#00D49C",animation:"pulse 2s ease-in-out infinite"}}/></div>{sb&&<span style={{fontSize:12,fontWeight:500,color:intel?"#00D49C":"#4A5E6E"}}>Daily Intel</span>}
-          </button>
-          {/* Theme */}
-          <div style={{display:"flex",justifyContent:"center",gap:2}}>
-            <button onClick={()=>sDk(false)} style={{padding:"4px 7px",borderRadius:5,border:"none",cursor:"pointer",background:!dark?"rgba(0,135,159,0.1)":"transparent",color:!dark?"#00879F":"#a9a29d"}}><Sun size={12}/></button>
-            <button onClick={()=>sDk(true)} style={{padding:"4px 7px",borderRadius:5,border:"none",cursor:"pointer",background:dark?"rgba(0,135,159,0.1)":"transparent",color:dark?"#00879F":"#a9a29d"}}><Moon size={12}/></button>
+        {/* ── Sign out ── */}
+        <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:36,borderRadius:10,cursor:"pointer",color:"var(--muted)",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s"}}
+          onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,0.04)";e.currentTarget.style.color="var(--text)";}}
+          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--muted)";}}>
+          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0}}/><span style={{opacity:navH?1:0,fontSize:13,fontWeight:500,transition:"opacity .15s",pointerEvents:"none"}}>Sign out</span>
+        </button>
+
+        {/* ── Avatar ── */}
+        <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",cursor:"pointer",borderRadius:10,transition:"background .15s"}}
+          onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,0.04)";}}
+          onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+          <div style={{width:32,height:32,borderRadius:"50%",background:"#00879F",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,flexShrink:0}}>{nm[0]?.toUpperCase()}</div>
+          <div style={{display:"flex",flexDirection:"column",opacity:navH?1:0,transition:"opacity .15s",minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{nm}</div>
+            {isA&&<div style={{fontSize:10,color:"var(--muted)"}}>Admin</div>}
           </div>
-          {/* Avatar */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"2px 0"}}>
-            <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#00879F,#00D49C)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",border:"2px solid var(--panel)",boxShadow:"0 0 0 1px rgba(0,135,159,0.12)"}}>{nm[0]?.toUpperCase()}</div>
-            {sb&&<div style={{marginLeft:8,overflow:"hidden",flex:1}}><div style={{fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{nm}</div>{isA&&<div style={{...M,fontSize:7,color:"#5A7A00",letterSpacing:"0.08em"}}>ADMIN</div>}</div>}
-          </div>
-          {/* Sign out */}
-          <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{width:sb?"100%":40,height:28,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,padding:sb?"0 10px":0,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:11,borderRadius:6}}
-            onMouseEnter={e=>{e.currentTarget.style.color="var(--dim)";}} onMouseLeave={e=>{e.currentTarget.style.color="var(--muted)";}}>
-            <LogOut size={13}/>{sb&&<span>Sign out</span>}
-          </button>
-          {/* Toggle */}
-          <button onClick={()=>sSb(!sb)} style={{width:sb?"100%":40,height:28,borderRadius:6,display:"flex",alignItems:"center",justifyContent:sb?"flex-end":"center",color:"var(--muted)",cursor:"pointer",background:"transparent",border:"none",paddingRight:sb?8:0,transition:"all .15s"}}
-            onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,135,159,0.06)";e.currentTarget.style.color="#00879F";}}
-            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--muted)";}}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">{sb?<><path d="M6 3L2 8L6 13"/><line x1="14" y1="8" x2="2" y2="8"/></>:<><path d="M10 3L14 8L10 13"/><line x1="2" y1="8" x2="14" y2="8"/></>}</svg>
-          </button>
         </div>
       </nav>
-    <main style={{flex:1,marginLeft:sb?230:56,transition:"margin-left .3s cubic-bezier(0.16,1,0.3,1)"}}>
+    <main style={{flex:1,marginLeft:60,transition:"margin-left .2s ease",padding:16,minHeight:"100vh"}}>
+      <div style={{background:"var(--panel)",borderRadius:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.04)",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:"calc(100vh - 32px)"}}>
       <div style={{position:"sticky",top:0,zIndex:50,background:"var(--panel)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)"}}>
         <div style={{position:"relative",flex:1,maxWidth:360}}><Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)"}}/><input value={search} onChange={e=>{sSr(e.target.value);sSrO(true);}} onFocus={()=>sSrO(true)} onBlur={()=>setTimeout(()=>sSrO(false),200)} placeholder="Search deals..." style={{...IP,paddingLeft:32,fontSize:12}}/>{srO&&search&&sr.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:10,marginTop:4,boxShadow:"0 8px 24px rgba(0,0,0,0.1)",zIndex:60,overflow:"hidden",maxHeight:400,overflowY:"auto"}}>{sr.map((r,i)=><div key={i} onMouseDown={()=>{if(r.deal)sM({deal:r.deal});sSr("");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid var(--border)",fontSize:13,display:"flex",alignItems:"center",gap:10}}><span style={{...M,fontSize:9,padding:"2px 6px",borderRadius:3,background:r.type==="Deal"?"rgba(0,135,159,0.06)":r.type==="Lead"?"rgba(0,212,156,0.06)":"rgba(255,184,0,0.06)",color:r.type==="Deal"?"#00879F":r.type==="Lead"?"#00D49C":"#FFB800",flexShrink:0}}>{r.type}</span><span style={{fontWeight:600,flex:1}}>{r.name}</span><span style={{...M,fontSize:10,color:"var(--muted)"}}>{r.sub}</span></div>)}</div>}</div>
         <button onClick={()=>sTourStep(0)} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,padding:"5px 8px",cursor:"pointer",color:"var(--muted)"}} title="Guided Tour"><BookOpen size={14}/></button><div style={{display:"flex",alignItems:"center",gap:8}}>{isA&&<button onClick={()=>sNotifOpen(!notifOpen)} style={{position:"relative",background:"none",border:"1px solid var(--border)",borderRadius:6,padding:"5px 8px",cursor:"pointer",color:"var(--muted)"}}><Bell size={14}/>{notif>0&&<span style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:7,background:"#FF4B4B",color:"#fff",fontSize:8,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}</button>}<div style={{...M,fontSize:9,color:"#FFB800",letterSpacing:"0.1em",padding:"3px 8px",background:"rgba(255,184,0,0.05)",border:"1px solid rgba(255,184,0,0.08)",borderRadius:4}}>STAGING</div></div>
       </div>
       <div style={{padding:"24px 28px 80px",maxWidth:1100}}>{renderTab()}</div>
+      </div>
     </main>
     <NotifPanel open={notifOpen} onClose={()=>sNotifOpen(false)} requests={accessReqs} token={tk} onRefresh={ld}/>
     <DailyIntel deals={deals} profile={profile} open={intel} onClose={()=>sIntel(false)}/>
