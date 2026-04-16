@@ -1107,60 +1107,52 @@ return(<div>
   }};
 
   return(<div style={{...th,fontFamily:"'DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-    <nav onMouseEnter={()=>sNavH(true)} onMouseLeave={()=>sNavH(false)} style={{width:navH?200:60,background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 0",gap:4,transition:"width .2s ease",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
-        {/* ── Logo ── */}
-        <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,alignSelf:"flex-start",marginLeft:12,flexShrink:0}}>
-          <svg width="26" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
+    <nav onMouseEnter={()=>sNavH(true)} onMouseLeave={()=>sNavH(false)} style={{width:navH?200:60,background:dark?"var(--panel)":"var(--bg)",display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 0",gap:2,transition:"width .2s ease",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
+        {/* Logo */}
+        <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,alignSelf:"flex-start",marginLeft:12,flexShrink:0}}>
+          <svg width="26" height="22" viewBox="0 0 24 24" fill="none" stroke={dark?"#8AA0A6":"#4A5E6E"} strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
         </div>
-
-        {/* ── Nav Items ── */}
+        {/* All nav items in flat list */}
         {[{id:"home",label:"Home",icon:Home},...TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)),{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
-          <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:on?"#00879F":"var(--sub)",background:on?"rgba(0,135,159,0.08)":"transparent",border:"none",position:"relative",whiteSpace:"nowrap",transition:"background .15s, color .15s"}}
-            onMouseEnter={e=>{if(!on){e.currentTarget.style.background="rgba(0,0,0,0.04)";e.currentTarget.style.color="var(--text)";}}}
-            onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--sub)";}}}>
-            <I size={20} strokeWidth={1.8} style={{flexShrink:0}}/>
-            <span style={{opacity:navH?1:0,fontSize:13,fontWeight:500,transition:"opacity .15s",pointerEvents:"none"}}>{t.label}</span>
+          <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:40,borderRadius:10,cursor:"pointer",color:on?"#00879F":dark?"#8AA0A6":"#4A5E6E",background:on?"rgba(0,135,159,0.08)":"transparent",border:"none",position:"relative",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
+            onMouseEnter={e=>{if(!on){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#0a0a0a";}}}
+            onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color=on?"#00879F":dark?"#8AA0A6":"#4A5E6E";}}}>
+            <I size={20} strokeWidth={1.8} style={{flexShrink:0,minWidth:20}}/>
+            <span style={{fontSize:13,fontWeight:on?600:500,opacity:navH?1:0,transition:"opacity .15s",pointerEvents:"none"}}>{t.label}</span>
             {t.id==="admin"&&notif>0&&<span style={{position:"absolute",top:6,left:30,width:14,height:14,background:"#00879F",color:"#fff",borderRadius:"50%",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}
           </button>);})}
-
-        {/* ── Daily Intel ── */}
-        <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:intel?"#00D49C":"var(--sub)",background:intel?"rgba(0,212,156,0.08)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s"}}
-          onMouseEnter={e=>{if(!intel){e.currentTarget.style.background="rgba(0,0,0,0.04)";e.currentTarget.style.color="#00D49C";}}}
-          onMouseLeave={e=>{if(!intel){e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--sub)";}}}>
-          <div style={{position:"relative",flexShrink:0}}><Activity size={20} strokeWidth={1.8}/><div style={{position:"absolute",top:-2,right:-2,width:6,height:6,borderRadius:3,background:"#00D49C",animation:"pulse 2s ease-in-out infinite"}}/></div>
-          <span style={{opacity:navH?1:0,fontSize:13,fontWeight:500,transition:"opacity .15s",pointerEvents:"none"}}>Daily Intel</span>
+        {/* Daily Intel */}
+        <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:40,borderRadius:10,cursor:"pointer",color:intel?"#00D49C":dark?"#8AA0A6":"#4A5E6E",background:intel?"rgba(0,212,156,0.08)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
+          onMouseEnter={e=>{if(!intel){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color="#00D49C";}}}
+          onMouseLeave={e=>{if(!intel){e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#8AA0A6":"#4A5E6E";}}}>
+          <div style={{position:"relative",flexShrink:0,minWidth:20,display:"flex",alignItems:"center",justifyContent:"center"}}><Activity size={20} strokeWidth={1.8}/><div style={{position:"absolute",top:-2,right:-3,width:6,height:6,borderRadius:3,background:"#00D49C",animation:"pulse 2s ease-in-out infinite"}}/></div>
+          <span style={{fontSize:13,fontWeight:500,opacity:navH?1:0,transition:"opacity .15s",pointerEvents:"none"}}>Daily Intel</span>
         </button>
-
-        {/* ── Spacer ── */}
+        {/* Spacer */}
         <div style={{flex:1}}/>
-
-        {/* ── Theme ── */}
-        <div style={{display:"flex",gap:2,marginBottom:4}}>
-          <button onClick={()=>sDk(false)} style={{padding:"4px 7px",borderRadius:5,border:"none",cursor:"pointer",background:!dark?"rgba(0,135,159,0.1)":"transparent",color:!dark?"#00879F":"#a9a29d"}}><Sun size={13}/></button>
-          <button onClick={()=>sDk(true)} style={{padding:"4px 7px",borderRadius:5,border:"none",cursor:"pointer",background:dark?"rgba(0,135,159,0.1)":"transparent",color:dark?"#00879F":"#a9a29d"}}><Moon size={13}/></button>
+        {/* Theme toggle */}
+        <div style={{display:"flex",gap:2,marginBottom:4,flexShrink:0}}>
+          <button onClick={()=>sDk(false)} style={{padding:"5px 8px",borderRadius:6,border:"none",cursor:"pointer",background:!dark?"rgba(0,135,159,0.1)":"transparent",color:!dark?"#00879F":"#a9a29d"}}><Sun size={14}/></button>
+          <button onClick={()=>sDk(true)} style={{padding:"5px 8px",borderRadius:6,border:"none",cursor:"pointer",background:dark?"rgba(0,135,159,0.1)":"transparent",color:dark?"#00879F":"#a9a29d"}}><Moon size={14}/></button>
         </div>
-
-        {/* ── Sign out ── */}
-        <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:36,borderRadius:10,cursor:"pointer",color:"var(--muted)",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s"}}
-          onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,0.04)";e.currentTarget.style.color="var(--text)";}}
-          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--muted)";}}>
-          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0}}/><span style={{opacity:navH?1:0,fontSize:13,fontWeight:500,transition:"opacity .15s",pointerEvents:"none"}}>Sign out</span>
+        {/* Sign out */}
+        <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:36,borderRadius:10,cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
+          onMouseEnter={e=>{e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#0a0a0a";}}
+          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#5A7278":"#8A9BAA";}}>
+          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:20}}/><span style={{fontSize:13,fontWeight:500,opacity:navH?1:0,transition:"opacity .15s",pointerEvents:"none"}}>Sign out</span>
         </button>
-
-        {/* ── Avatar ── */}
-        <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",cursor:"pointer",borderRadius:10,transition:"background .15s"}}
-          onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,0,0,0.04)";}}
-          onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+        {/* Avatar */}
+        <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",borderRadius:10,flexShrink:0}}>
           <div style={{width:32,height:32,borderRadius:"50%",background:"#00879F",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,flexShrink:0}}>{nm[0]?.toUpperCase()}</div>
           <div style={{display:"flex",flexDirection:"column",opacity:navH?1:0,transition:"opacity .15s",minWidth:0}}>
-            <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{nm}</div>
-            {isA&&<div style={{fontSize:10,color:"var(--muted)"}}>Admin</div>}
+            <div style={{fontSize:12,fontWeight:600,color:dark?"#E8F0F0":"#0a0a0a",whiteSpace:"nowrap"}}>{nm}</div>
+            {isA&&<div style={{fontSize:10,color:dark?"#5A7278":"#8A9BAA"}}>Admin</div>}
           </div>
         </div>
       </nav>
-    <main style={{flex:1,marginLeft:60,transition:"margin-left .2s ease",padding:16,minHeight:"100vh"}}>
-      <div style={{background:"var(--panel)",borderRadius:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.04)",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:"calc(100vh - 32px)"}}>
-      <div style={{position:"sticky",top:0,zIndex:50,background:"var(--panel)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:"blur(20px)"}}>
+    <main style={{flex:1,marginLeft:64,padding:"8px 8px 8px 4px",minHeight:"100vh"}}>
+      <div style={{background:"var(--panel)",borderRadius:16,boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.04)",overflow:"hidden",minHeight:"calc(100vh - 16px)"}}>
+      <div style={{position:"sticky",top:0,zIndex:50,background:"var(--panel)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",borderRadius:"16px 16px 0 0"}}>
         <div style={{position:"relative",flex:1,maxWidth:360}}><Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)"}}/><input value={search} onChange={e=>{sSr(e.target.value);sSrO(true);}} onFocus={()=>sSrO(true)} onBlur={()=>setTimeout(()=>sSrO(false),200)} placeholder="Search deals..." style={{...IP,paddingLeft:32,fontSize:12}}/>{srO&&search&&sr.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:10,marginTop:4,boxShadow:"0 8px 24px rgba(0,0,0,0.1)",zIndex:60,overflow:"hidden",maxHeight:400,overflowY:"auto"}}>{sr.map((r,i)=><div key={i} onMouseDown={()=>{if(r.deal)sM({deal:r.deal});sSr("");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid var(--border)",fontSize:13,display:"flex",alignItems:"center",gap:10}}><span style={{...M,fontSize:9,padding:"2px 6px",borderRadius:3,background:r.type==="Deal"?"rgba(0,135,159,0.06)":r.type==="Lead"?"rgba(0,212,156,0.06)":"rgba(255,184,0,0.06)",color:r.type==="Deal"?"#00879F":r.type==="Lead"?"#00D49C":"#FFB800",flexShrink:0}}>{r.type}</span><span style={{fontWeight:600,flex:1}}>{r.name}</span><span style={{...M,fontSize:10,color:"var(--muted)"}}>{r.sub}</span></div>)}</div>}</div>
         <button onClick={()=>sTourStep(0)} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,padding:"5px 8px",cursor:"pointer",color:"var(--muted)"}} title="Guided Tour"><BookOpen size={14}/></button><div style={{display:"flex",alignItems:"center",gap:8}}>{isA&&<button onClick={()=>sNotifOpen(!notifOpen)} style={{position:"relative",background:"none",border:"1px solid var(--border)",borderRadius:6,padding:"5px 8px",cursor:"pointer",color:"var(--muted)"}}><Bell size={14}/>{notif>0&&<span style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:7,background:"#FF4B4B",color:"#fff",fontSize:8,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}</button>}<div style={{...M,fontSize:9,color:"#FFB800",letterSpacing:"0.1em",padding:"3px 8px",background:"rgba(255,184,0,0.05)",border:"1px solid rgba(255,184,0,0.08)",borderRadius:4}}>STAGING</div></div>
       </div>
