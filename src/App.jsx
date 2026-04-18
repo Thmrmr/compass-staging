@@ -116,10 +116,26 @@ return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",displa
 <div style={{padding:"14px 24px",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",gap:10}}><button onClick={onClose} style={BG}>Cancel</button><button onClick={sv2} disabled={sv} style={{...BP,opacity:sv?0.6:1}}><Save size={14} style={{marginRight:6}}/>{sv?"Saving...":nw?"Create":"Save"}</button></div></div></div>);}
 
 
-function useSTT(){const[listening,setL]=useState(false);const[transcript,setTr]=useState("");const recRef=useRef(null);const onDoneRef=useRef(null);
-const start=useCallback(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;const r=new SR();r.continuous=false;r.interimResults=true;r.lang="en-US";let buf="";r.onresult=(e)=>{buf="";for(let i=0;i<e.results.length;i++)buf+=e.results[i][0].transcript;setTr(buf);};r.onend=()=>{setL(false);if(buf.trim()&&onDoneRef.current){const finalText=buf;setTimeout(()=>onDoneRef.current(finalText),600);}};r.onerror=()=>setL(false);recRef.current=r;r.start();setL(true);},[]);
-const stop=useCallback(()=>{recRef.current?.stop();setL(false);},[]);
-return{listening,transcript,start,stop,setTranscript:setTr,onDoneRef};}
+function useSTT(){
+  const[listening,setL]=useState(false);
+  const[transcript,setTr]=useState("");
+  const recRef=useRef(null);
+  const onDoneRef=useRef(null);
+  const start=useCallback(()=>{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return;
+    const r=new SR();
+    r.continuous=false;r.interimResults=true;
+    r.lang=document.documentElement.lang||"en-US";
+    let buf="";
+    r.onresult=(e)=>{buf="";for(let i=0;i<e.results.length;i++)buf+=e.results[i][0].transcript;setTr(buf);};
+    r.onend=()=>{setL(false);if(buf.trim()&&onDoneRef.current){const t=buf.trim();setTimeout(()=>{if(onDoneRef.current)onDoneRef.current(t);},600);}};
+    r.onerror=()=>setL(false);
+    recRef.current=r;r.start();setL(true);setTr("");
+  },[]);
+  const stop=useCallback(()=>{if(recRef.current)recRef.current.stop();},[]);
+  return{listening,transcript,start,stop,setTranscript:setTr,onDoneRef};
+}
 
 const EL_VOICE_EN='EXAVITQu4vr4xnSDxMaL';
 const EL_VOICE_AR='TX3LPaxmHKxFdv7VOQHJ';
@@ -179,10 +195,25 @@ OBJECTION RESPONSES:
 
 function MD({text}){if(!text)return null;const lines=text.split("\n");const out=[];let key=0;for(let i=0;i<lines.length;i++){let line=lines[i];const isBullet=/^(\s*)([-*•])\s+(.+)/.exec(line);const isNumbered=/^(\s*)(\d+)\.\s+(.+)/.exec(line);const isHeader=/^#{1,3}\s+(.+)/.exec(line);const renderInline=(s)=>{const parts=[];let last=0;const re=/(\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*)/g;let m;while((m=re.exec(s))!==null){if(m.index>last)parts.push(s.slice(last,m.index));if(m[2])parts.push(<strong key={"b"+key++}>{m[2]}</strong>);else if(m[3])parts.push(<code key={"c"+key++} style={{background:"var(--panel2)",padding:"1px 5px",borderRadius:8,fontFamily:"'DM Mono',monospace",fontSize:11}}>{m[3]}</code>);else if(m[4])parts.push(<em key={"i"+key++}>{m[4]}</em>);last=m.index+m[0].length;}if(last<s.length)parts.push(s.slice(last));return parts.length?parts:s;};if(isHeader){out.push(<div key={key++} style={{...T,fontSize:14,fontWeight:700,marginTop:i>0?10:0,marginBottom:6,color:"#009688"}}>{renderInline(isHeader[1])}</div>);}else if(isBullet){out.push(<div key={key++} style={{display:"flex",gap:8,marginBottom:4,paddingLeft:isBullet[1].length*6}}><span style={{color:"#009688",flexShrink:0}}>•</span><span>{renderInline(isBullet[3])}</span></div>);}else if(isNumbered){out.push(<div key={key++} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:"#009688",fontWeight:600,flexShrink:0,minWidth:16}}>{isNumbered[2]}.</span><span>{renderInline(isNumbered[3])}</span></div>);}else if(line.trim()===""){out.push(<div key={key++} style={{height:6}}/>);}else{out.push(<div key={key++} style={{marginBottom:4}}>{renderInline(line)}</div>);}}return<div>{out}</div>;}
 
-function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();const goRef=useRef(null);
-useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
-stt.onDoneRef.current=(text)=>{if(goRef.current)goRef.current(text);};
-  const[pendingDeal,sPD]=useState(null);const[agentCtx,sAgentCtx]=useState("");const[savingDeal,sSD]=useState(false);
+function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){
+  const[ms,sMs]=useState([]);
+  const[inp,sI]=useState("");
+  const[busy,sBusy]=useState(false);
+  const endRef=useRef(null);
+  const stt=useSTT();
+  const sendRef=useRef(null);
+
+  // Live transcript → input field
+  useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
+
+  // Auto-send when voice recognition completes
+  stt.onDoneRef.current=(finalText)=>{if(sendRef.current)sendRef.current(finalText);};
+
+  // Deal capture state
+  const[pendingDeal,sPD]=useState(null);
+  const[agentCtx,sAgentCtx]=useState("");
+  const[savingDeal,sSD]=useState(false);
+
   const saveDeal=async()=>{if(!pendingDeal?.client_name)return;sSD(true);try{
     const pl={client_name:pendingDeal.client_name,sector:pendingDeal.sector||"",stage:pendingDeal.stage||"Recognition",status:"Active",expected_value:parseFloat(pendingDeal.expected_value)||0,contact_name:pendingDeal.contact_name||"",next_step:pendingDeal.next_step||"",updated_at:new Date().toISOString()};
     const res=await q("/rest/v1/deals",token,{method:"POST",body:JSON.stringify(pl)});
@@ -190,53 +221,88 @@ stt.onDoneRef.current=(text)=>{if(goRef.current)goRef.current(text);};
     sMs(p=>[...p,{role:"assistant",content:"Deal registered: "+pl.client_name+" ("+pl.sector+") at "+pl.stage+" stage."+(pl.expected_value?" Value: SAR "+pl.expected_value.toLocaleString():"")}]);
     sPD(null);if(onDealCreated)onDealCreated();
   }catch(e){sMs(p=>[...p,{role:"assistant",content:"Error saving deal: "+e.message}]);}finally{sSD(false);}};
-useEffect(()=>{end.current?.scrollIntoView({behavior:"smooth"});},[ms]);
-const DEAL_TOOL={name:"register_deal",description:"Register a new deal when the user mentions meeting a client, closing a deal, or a new business opportunity.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string",enum:["Government","Oil & Gas","Healthcare","Private Sector","Sport"]},expected_value:{type:"number"},contact_name:{type:"string"},stage:{type:"string",enum:["Recognition","Proof","Integration","Dependency","Expansion"]},next_step:{type:"string"}},required:["client_name"]}};
-const BRIEF_TOOL={name:"prepare_meeting_brief",description:"Prepare a meeting brief when user mentions preparing for a meeting or needing to prep.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string"},meeting_type:{type:"string"}},required:["client_name"]}};
-const go=async(textOverride)=>{const t=(textOverride||inp).trim();if(!t||b)return;sI("");sB(true);sMs(p=>[...p,{role:"user",content:t}]);const a=deals.filter(d=>d.status==="Active");
-goRef.current=go;
-  const selectedAgent=agentCtx?AGENTS.find(x=>x.key===agentCtx):null;
+
+  // Auto-scroll
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[ms]);
+
+  // Tools
+  const DEAL_TOOL={name:"register_deal",description:"Register a new deal when the user mentions meeting a client, closing a deal, or a new business opportunity.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string",enum:["Government","Oil & Gas","Healthcare","Private Sector","Sport"]},expected_value:{type:"number"},contact_name:{type:"string"},stage:{type:"string",enum:["Recognition","Proof","Integration","Dependency","Expansion"]},next_step:{type:"string"}},required:["client_name"]}};
+  const BRIEF_TOOL={name:"prepare_meeting_brief",description:"Prepare a meeting brief when user mentions preparing for a meeting or needing to prep.",input_schema:{type:"object",properties:{client_name:{type:"string"},sector:{type:"string"},meeting_type:{type:"string"}},required:["client_name"]}};
+
+  // Send message — accepts text directly (for voice) or uses input field
+  const send=async(textOverride)=>{
+    const t=(textOverride||inp).trim();
+    if(!t||busy)return;
+    sI("");sBusy(true);
+    sMs(p=>[...p,{role:"user",content:t}]);
+    const a=deals.filter(d=>d.status==="Active");
+    const selectedAgent=agentCtx?AGENTS.find(x=>x.key===agentCtx):null;
     const today=new Date().toISOString().slice(0,10);
     const upcoming=a.filter(d=>d.next_meeting&&d.next_meeting>=today).sort((x,y)=>(x.next_meeting||"").localeCompare(y.next_meeting||"")).slice(0,10);
     const topDeals=[...a].sort((x,y)=>(y.expected_value||0)-(x.expected_value||0)).slice(0,15);
     const stalledDeals=a.filter(d=>d.updated_at&&(Date.now()-new Date(d.updated_at).getTime())>14*86400000).slice(0,5);
-    const dealContext="CURRENT PIPELINE DATA:\n"+
-      "Today: "+today+"\n"+
-      "Total active deals: "+a.length+"\n\n"+
+    const dealContext="CURRENT PIPELINE DATA:\nToday: "+today+"\nTotal active deals: "+a.length+"\n\n"+
       (upcoming.length>0?"UPCOMING MEETINGS (next "+upcoming.length+"):\n"+upcoming.map(d=>"- "+d.next_meeting+": "+d.client_name+" ("+(d.sector||"?")+", "+d.stage+" stage)"+(d.next_step?" — next: "+d.next_step:"")).join("\n")+"\n\n":"NO UPCOMING MEETINGS SCHEDULED.\n\n")+
       "TOP DEALS BY VALUE:\n"+topDeals.map(d=>"- "+d.client_name+" ("+(d.sector||"?")+") — "+d.stage+" stage"+(d.expected_value?", SAR "+Number(d.expected_value).toLocaleString():"")+(d.deal_score?", score "+d.deal_score:"")+(d.contact_name?", contact: "+d.contact_name:"")).join("\n")+
       (stalledDeals.length>0?"\n\nSTALLED DEALS (no update >14 days):\n"+stalledDeals.map(d=>"- "+d.client_name+" ("+Math.round((Date.now()-new Date(d.updated_at).getTime())/86400000)+" days stalled)").join("\n"):"");
     const sys=selectedAgent
-      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+".\n\n"+dealContext+"\n\n"+COMPASS_KB+"\n\nRespond from your agent perspective using the pipeline data and knowledge base above. Reference specific clients, meetings, sector beliefs, and principles. Be specific and actionable."
-      :"You are COMPASS AI, the sovereign intelligence layer for HUMAIN CRM. User: "+(profile?.full_name||"")+".\n\n"+dealContext+"\n\n"+COMPASS_KB+"\n\nWhen the user asks about upcoming meetings, next sessions, or scheduled activity, use the UPCOMING MEETINGS data above. When they ask about specific clients, reference the pipeline data. When they mention a new opportunity or deal, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Use the knowledge base for sector beliefs, engagement principles, meeting tactics, and HUMAIN products. Be specific and actionable. Be concise.";
-  try{const body={apiKey:claudeKey||"",model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[...ms.slice(-10),{role:"user",content:t}],system:sys,tools:[DEAL_TOOL,BRIEF_TOOL]};
-    const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok){const err=await r.text();throw new Error(err||"Claude API error");}const d=await r.json();
-    let txt=[];let toolUse=null;
-    for(const block of (d.content||[])){if(block.type==="text"&&block.text)txt.push(block.text);if(block.type==="tool_use"&&block.name==="register_deal")toolUse=block.input;if(block.type==="tool_use"&&block.name==="prepare_meeting_brief")txt.push("Opening brief generator for "+(block.input?.client_name||"your client")+"...");}
-    if(txt.length)sMs(p=>[...p,{role:"assistant",content:txt.join("")}]);
-    if(toolUse)sPD({client_name:toolUse.client_name||"",sector:toolUse.sector||"",expected_value:toolUse.expected_value||0,contact_name:toolUse.contact_name||"",stage:toolUse.stage||"Recognition",next_step:toolUse.next_step||""});
-  }catch(x){sMs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{sB(false);}};
-return(<div style={{...CS,border:"1px solid rgba(0,150,136,0.15)",boxShadow:"0 2px 12px rgba(0,150,136,0.06)"}}><div style={{height:2,background:"linear-gradient(90deg,#B8E636,#00B89C,#009688)"}}/><div style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:8}}>
-      <div style={{width:26,height:26,borderRadius:8,background:"rgba(0,150,136,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#009688"}}><MessageSquare size={13}/></div>
-      <span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)",flex:1}}>COMPASS AI</span>
-      <select value={agentCtx} onChange={e=>sAgentCtx(e.target.value)} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:999,border:"1px solid var(--border)",background:"var(--panel2)",color:"var(--muted)",cursor:"pointer"}}>
-        <option value="">General</option>{AGENTS.map(a=><option key={a.key} value={a.key}>{a.name}</option>)}
-      </select>
-    </div>
-<div style={{height:320,overflowY:"auto",padding:14}}>{ms.length===0&&<div style={{textAlign:"center",paddingTop:50,color:"var(--muted)",fontSize:13}}>Ask about deals, pipeline, or strategy</div>}{ms.map((m,i)=><div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"80%"}}><div style={{padding:"9px 13px",borderRadius:10,fontSize:13,lineHeight:1.6,background:m.role==="user"?"#0D1B1E":"rgba(0,150,136,0.06)",color:m.role==="user"?"#fff":"var(--text)",border:m.role==="assistant"?"1px solid rgba(0,150,136,0.1)":"none",whiteSpace:"normal"}}>{m.role==="assistant"?<MD text={m.content}/>:m.content}</div>{m.role==="assistant"&&<button onClick={()=>speakTTS(m.content,elKey)} style={{marginTop:3,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:2}}><Volume2 size={12}/></button>}</div></div>)}{b&&<div style={{...M,color:"var(--muted)",fontSize:11}}>Thinking...</div>}<div ref={end}/></div>
+      ?"You are "+selectedAgent.name+", a specialized HUMAIN COMPASS agent. "+selectedAgent.desc+". User: "+(profile?.full_name||"")+".\n\n"+dealContext+"\n\n"+COMPASS_KB+"\n\nRespond from your agent perspective. Reference specific clients and data. Be concise and actionable."
+      :"You are COMPASS AI, the sovereign intelligence layer for HUMAIN CRM. User: "+(profile?.full_name||"")+".\n\n"+dealContext+"\n\n"+COMPASS_KB+"\n\nUse the pipeline data and knowledge base. When the user mentions a new opportunity, use register_deal. When they want to prepare for a meeting, use prepare_meeting_brief. Be specific and actionable. Be concise.";
+    try{
+      const body={apiKey:claudeKey||"",model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[...ms.slice(-10),{role:"user",content:t}],system:sys,tools:[DEAL_TOOL,BRIEF_TOOL]};
+      const r=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(!r.ok){const err=await r.text();throw new Error(err||"Claude API error");}
+      const d=await r.json();
+      let txt=[];let toolUse=null;
+      for(const block of (d.content||[])){if(block.type==="text"&&block.text)txt.push(block.text);if(block.type==="tool_use"&&block.name==="register_deal")toolUse=block.input;if(block.type==="tool_use"&&block.name==="prepare_meeting_brief")txt.push("Opening brief generator for "+(block.input?.client_name||"your client")+"...");}
+      if(txt.length)sMs(p=>[...p,{role:"assistant",content:txt.join("")}]);
+      if(toolUse)sPD({client_name:toolUse.client_name||"",sector:toolUse.sector||"",expected_value:toolUse.expected_value||0,contact_name:toolUse.contact_name||"",stage:toolUse.stage||"Recognition",next_step:toolUse.next_step||""});
+    }catch(x){sMs(p=>[...p,{role:"assistant",content:"Error: "+x.message}]);}finally{sBusy(false);}
+  };
+  // Keep ref current for voice callback
+  sendRef.current=send;
 
-      {pendingDeal&&<div style={{margin:"0 12px 8px",padding:"14px 16px",background:"rgba(0,184,156,0.04)",border:"1px solid rgba(0,184,156,0.15)",borderRadius:10}}>
-        <div style={{...M,fontSize:9,letterSpacing:"0.1em",color:"#00B89C",marginBottom:10}}>DEAL DETECTED — CONFIRM TO REGISTER</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-          <div><label style={{...LB,fontSize:8}}>CLIENT</label><input value={pendingDeal.client_name} onChange={e=>sPD(p=>({...p,client_name:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}/></div>
-          <div><label style={{...LB,fontSize:8}}>SECTOR</label><select value={pendingDeal.sector} onChange={e=>sPD(p=>({...p,sector:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}><option value="">Select</option>{SECTORS.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div><label style={{...LB,fontSize:8}}>VALUE (SAR)</label><input type="number" value={pendingDeal.expected_value} onChange={e=>sPD(p=>({...p,expected_value:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}/></div>
-          <div><label style={{...LB,fontSize:8}}>STAGE</label><select value={pendingDeal.stage} onChange={e=>sPD(p=>({...p,stage:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-        </div>
-        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={()=>sPD(null)} style={{...BG,padding:"5px 12px",fontSize:11}}>Cancel</button><button onClick={saveDeal} disabled={savingDeal} style={{...BP,padding:"5px 12px",fontSize:11,opacity:savingDeal?0.6:1}}><Save size={12} style={{marginRight:4}}/>{savingDeal?"Saving...":"Register Deal"}</button></div>
-      </div>}
-      <div style={{padding:"12px 14px",borderTop:"1px solid var(--border)",background:"var(--panel2)",display:"flex",gap:8}}><button onClick={()=>{if(stt.listening){stt.stop();}else{stt.start();}}} style={{padding:"9px",background:stt.listening?"rgba(255,75,75,0.1)":"transparent",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer",color:stt.listening?"#FF4B4B":"var(--muted)"}}>
-{stt.listening?<MicOff size={14}/>:<Mic size={14}/>}</button><input value={inp} onChange={e=>sI(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder={stt.listening?"Listening...":"Ask COMPASS anything..."} onFocus={()=>onChatActive&&onChatActive(true)} style={{...IP,flex:1}}/><button onClick={go} disabled={b||!inp.trim()} style={{...BP,padding:"10px 18px",opacity:b||!inp.trim()?0.4:1}}><Send size={14}/></button></div></div>);}
+return(<div style={{...CS,border:"1px solid rgba(0,150,136,0.15)",boxShadow:"0 2px 12px rgba(0,150,136,0.06)"}}>
+  <div style={{height:2,background:"linear-gradient(90deg,#B8E636,#00B89C,#009688)"}}/> 
+  <div style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:8}}>
+    <div style={{width:26,height:26,borderRadius:8,background:"rgba(0,150,136,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#009688"}}><MessageSquare size={13}/></div>
+    <span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)",flex:1}}>COMPASS AI</span>
+    <select value={agentCtx} onChange={e=>sAgentCtx(e.target.value)} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:999,border:"1px solid var(--border)",background:"var(--panel2)",color:"var(--muted)",cursor:"pointer"}}>
+      <option value="">General</option>{AGENTS.map(a=><option key={a.key} value={a.key}>{a.name}</option>)}
+    </select>
+  </div>
+  {/* Messages */}
+  <div style={{height:320,overflowY:"auto",padding:14}}>
+    {ms.length===0&&<div style={{textAlign:"center",paddingTop:50,color:"var(--muted)",fontSize:13}}>Ask about deals, pipeline, or strategy</div>}
+    {ms.map((m,i)=><div key={i} style={{marginBottom:10,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+      <div style={{maxWidth:"80%"}}>
+        <div style={{padding:"9px 13px",borderRadius:10,fontSize:13,lineHeight:1.6,background:m.role==="user"?"#0D1B1E":"rgba(0,150,136,0.06)",color:m.role==="user"?"#fff":"var(--text)",border:m.role==="assistant"?"1px solid rgba(0,150,136,0.1)":"none",whiteSpace:"normal"}}>{m.role==="assistant"?<MD text={m.content}/>:m.content}</div>
+        {m.role==="assistant"&&<button onClick={()=>speakTTS(m.content,elKey)} style={{marginTop:3,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:2}}><Volume2 size={12}/></button>}
+      </div>
+    </div>)}
+    {busy&&<div style={{...M,color:"var(--muted)",fontSize:11}}>Thinking...</div>}
+    <div ref={endRef}/>
+  </div>
+  {/* Deal capture card */}
+  {pendingDeal&&<div style={{margin:"0 12px 8px",padding:"14px 16px",background:"rgba(0,184,156,0.04)",border:"1px solid rgba(0,184,156,0.15)",borderRadius:10}}>
+    <div style={{...M,fontSize:9,letterSpacing:"0.1em",color:"#00B89C",marginBottom:10}}>DEAL DETECTED — CONFIRM TO REGISTER</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+      <div><label style={{...LB,fontSize:8}}>CLIENT</label><input value={pendingDeal.client_name} onChange={e=>sPD(p=>({...p,client_name:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}/></div>
+      <div><label style={{...LB,fontSize:8}}>SECTOR</label><select value={pendingDeal.sector} onChange={e=>sPD(p=>({...p,sector:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}><option value="">Select</option>{SECTORS.map(s=><option key={s}>{s}</option>)}</select></div>
+      <div><label style={{...LB,fontSize:8}}>VALUE (SAR)</label><input type="number" value={pendingDeal.expected_value} onChange={e=>sPD(p=>({...p,expected_value:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}/></div>
+      <div><label style={{...LB,fontSize:8}}>STAGE</label><select value={pendingDeal.stage} onChange={e=>sPD(p=>({...p,stage:e.target.value}))} style={{...IP,fontSize:12,padding:"6px 10px"}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
+    </div>
+    <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={()=>sPD(null)} style={{...BG,padding:"5px 12px",fontSize:11}}>Cancel</button><button onClick={saveDeal} disabled={savingDeal} style={{...BP,padding:"5px 12px",fontSize:11,opacity:savingDeal?0.6:1}}><Save size={12} style={{marginRight:4}}/>{savingDeal?"Saving...":"Register Deal"}</button></div>
+  </div>}
+  {/* Input bar */}
+  <div style={{padding:"12px 14px",borderTop:"1px solid var(--border)",background:"var(--panel2)",display:"flex",gap:8,alignItems:"center"}}>
+    <button onClick={()=>{if(stt.listening){stt.stop();}else{stt.start();}}} style={{padding:9,background:stt.listening?"rgba(255,75,75,0.1)":"transparent",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer",color:stt.listening?"#FF4B4B":"var(--muted)"}}>
+      {stt.listening?<MicOff size={14}/>:<Mic size={14}/>}
+    </button>
+    <input value={inp} onChange={e=>sI(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={stt.listening?"Listening...":"Ask COMPASS anything..."} onFocus={()=>onChatActive&&onChatActive(true)} style={{...IP,flex:1}}/>
+    <button onClick={()=>send()} disabled={busy||!inp.trim()} style={{...BP,padding:"10px 18px",opacity:busy||!inp.trim()?0.4:1}}><Send size={14}/></button>
+  </div>
+</div>);}
 
 function Kanban({deals,onOpen}){const g=STAGES.reduce((a,s)=>{a[s]=deals.filter(d=>d.stage===s&&d.status==="Active");return a;},{});
 return(<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:24}}>{STAGES.map((s,i)=><div key={s} style={{borderRight:i<4?"1px solid var(--border)":"none",minHeight:180}}><div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{...M,fontSize:9,letterSpacing:"0.08em",color:SC[s],fontWeight:600}}>{s.toUpperCase()}</span><span style={{...M,fontSize:9,color:"var(--muted)",background:"var(--panel2)",padding:"2px 6px",borderRadius:8}}>{g[s].length}</span></div><div style={{padding:6}}>{g[s].map(d=><div key={d.id} onClick={()=>onOpen(d)} style={{background:"var(--card-bg)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 10px",marginBottom:5,cursor:"pointer"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(0,150,136,0.3)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";}}><div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{d.client_name}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>{d.sector||"—"}</div>{d.expected_value>0&&<div style={{...M,fontSize:9,color:"#009688",marginTop:3}}>SAR {Number(d.expected_value).toLocaleString()}</div>}</div>)}</div></div>)}</div>);}
