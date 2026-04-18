@@ -116,10 +116,10 @@ return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",displa
 <div style={{padding:"14px 24px",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",gap:10}}><button onClick={onClose} style={BG}>Cancel</button><button onClick={sv2} disabled={sv} style={{...BP,opacity:sv?0.6:1}}><Save size={14} style={{marginRight:6}}/>{sv?"Saving...":nw?"Create":"Save"}</button></div></div></div>);}
 
 
-function useSTT(){const[listening,setL]=useState(false);const[transcript,setTr]=useState("");const recRef=useRef(null);
-const start=useCallback(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;const r=new SR();r.continuous=false;r.interimResults=true;r.lang="en-US";let buf="";r.onresult=(e)=>{buf="";for(let i=0;i<e.results.length;i++)buf+=e.results[i][0].transcript;setTr(buf);};r.onend=()=>setL(false);r.onerror=()=>setL(false);recRef.current=r;r.start();setL(true);},[]);
+function useSTT(){const[listening,setL]=useState(false);const[transcript,setTr]=useState("");const recRef=useRef(null);const onDoneRef=useRef(null);
+const start=useCallback(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;const r=new SR();r.continuous=false;r.interimResults=true;r.lang="en-US";let buf="";r.onresult=(e)=>{buf="";for(let i=0;i<e.results.length;i++)buf+=e.results[i][0].transcript;setTr(buf);};r.onend=()=>{setL(false);if(buf.trim()&&onDoneRef.current){const finalText=buf;setTimeout(()=>onDoneRef.current(finalText),100);}};r.onerror=()=>setL(false);recRef.current=r;r.start();setL(true);},[]);
 const stop=useCallback(()=>{recRef.current?.stop();setL(false);},[]);
-return{listening,transcript,start,stop,setTranscript:setTr};}
+return{listening,transcript,start,stop,setTranscript:setTr,onDoneRef};}
 
 const EL_VOICE_EN='EXAVITQu4vr4xnSDxMaL';
 const EL_VOICE_AR='TX3LPaxmHKxFdv7VOQHJ';
@@ -179,9 +179,9 @@ OBJECTION RESPONSES:
 
 function MD({text}){if(!text)return null;const lines=text.split("\n");const out=[];let key=0;for(let i=0;i<lines.length;i++){let line=lines[i];const isBullet=/^(\s*)([-*•])\s+(.+)/.exec(line);const isNumbered=/^(\s*)(\d+)\.\s+(.+)/.exec(line);const isHeader=/^#{1,3}\s+(.+)/.exec(line);const renderInline=(s)=>{const parts=[];let last=0;const re=/(\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*)/g;let m;while((m=re.exec(s))!==null){if(m.index>last)parts.push(s.slice(last,m.index));if(m[2])parts.push(<strong key={"b"+key++}>{m[2]}</strong>);else if(m[3])parts.push(<code key={"c"+key++} style={{background:"var(--panel2)",padding:"1px 5px",borderRadius:8,fontFamily:"'DM Mono',monospace",fontSize:11}}>{m[3]}</code>);else if(m[4])parts.push(<em key={"i"+key++}>{m[4]}</em>);last=m.index+m[0].length;}if(last<s.length)parts.push(s.slice(last));return parts.length?parts:s;};if(isHeader){out.push(<div key={key++} style={{...T,fontSize:14,fontWeight:700,marginTop:i>0?10:0,marginBottom:6,color:"#009688"}}>{renderInline(isHeader[1])}</div>);}else if(isBullet){out.push(<div key={key++} style={{display:"flex",gap:8,marginBottom:4,paddingLeft:isBullet[1].length*6}}><span style={{color:"#009688",flexShrink:0}}>•</span><span>{renderInline(isBullet[3])}</span></div>);}else if(isNumbered){out.push(<div key={key++} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:"#009688",fontWeight:600,flexShrink:0,minWidth:16}}>{isNumbered[2]}.</span><span>{renderInline(isNumbered[3])}</span></div>);}else if(line.trim()===""){out.push(<div key={key++} style={{height:6}}/>);}else{out.push(<div key={key++} style={{marginBottom:4}}>{renderInline(line)}</div>);}}return<div>{out}</div>;}
 
-function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();const sttDone=useRef(false);const goRef=useRef(null);
+function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();const goRef=useRef(null);
 useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
-useEffect(()=>{if(stt.listening){sttDone.current=true;}else if(sttDone.current&&stt.transcript){sttDone.current=false;const text=stt.transcript;stt.setTranscript("");setTimeout(()=>{if(goRef.current)goRef.current(text);},150);}},[stt.listening]);
+stt.onDoneRef.current=(text)=>{sI("");if(goRef.current)goRef.current(text);};
   const[pendingDeal,sPD]=useState(null);const[agentCtx,sAgentCtx]=useState("");const[savingDeal,sSD]=useState(false);
   const saveDeal=async()=>{if(!pendingDeal?.client_name)return;sSD(true);try{
     const pl={client_name:pendingDeal.client_name,sector:pendingDeal.sector||"",stage:pendingDeal.stage||"Recognition",status:"Active",expected_value:parseFloat(pendingDeal.expected_value)||0,contact_name:pendingDeal.contact_name||"",next_step:pendingDeal.next_step||"",updated_at:new Date().toISOString()};
