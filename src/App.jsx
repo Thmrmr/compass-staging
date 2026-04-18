@@ -46,7 +46,7 @@ const LB={...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",display:"b
 
 function Auth({onLogin}){const[e,sE]=useState("");const[p,sP]=useState("");const[sh,sSh]=useState(false);const[er,sEr]=useState("");const[b,sB]=useState(false);
 const go=async()=>{if(!e||!p){sEr("Enter email and password.");return;}sB(true);sEr("");try{onLogin(await auth(e,p));}catch(x){sEr(x.message);}finally{sB(false);}};
-return(<div style={{position:"fixed",inset:0,background:"linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif"}}><div style={{width:380,background:"#fff",borderRadius:20,overflow:"hidden",border:"1px solid rgba(0,0,0,0.08)"}}><div style={{height:3,background:"linear-gradient(90deg,#009688,#00B89C,#B8E636)"}}/><div style={{padding:"40px 36px 36px"}}><div style={{...T,fontSize:22,fontWeight:800,marginBottom:4}}>COMPASS</div><div style={{...M,fontSize:10,color:"#999",letterSpacing:"0.15em",marginBottom:28}}>STAGING ENVIRONMENT</div><div style={{marginBottom:14}}><label style={{...LB,color:"#999"}}>EMAIL</label><input value={e} onChange={x=>sE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} placeholder="you@humain.com" style={{...IP,background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)"}}/></div><div style={{marginBottom:20}}><label style={{...LB,color:"#999"}}>PASSWORD</label><div style={{position:"relative"}}><input type={sh?"text":"password"} value={p} onChange={x=>sP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} style={{...IP,background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)",paddingRight:40}}/><button onClick={()=>sSh(!sh)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#999"}}>{sh?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></div>{er&&<div style={{color:"#FF4B4B",fontSize:13,marginBottom:12,padding:"8px 12px",background:"rgba(255,75,75,0.06)",borderRadius:8}}>{er}</div>}<button onClick={go} disabled={b} style={{width:"100%",padding:"12px",background:"#009688",color:"#fff",border:"none",borderRadius:999,fontSize:14,fontWeight:600,cursor:b?"wait":"pointer",opacity:b?0.7:1}}>{b?"Signing in...":"Sign In"}</button></div></div></div>);}
+return(<div style={{position:"fixed",inset:0,background:"linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif"}}><div style={{width:380,background:"#fff",borderRadius:20,overflow:"hidden"}}><div style={{height:3,background:"linear-gradient(90deg,#009688,#00B89C,#B8E636)"}}/><div style={{padding:"40px 36px 36px"}}><div style={{...T,fontSize:22,fontWeight:800,marginBottom:4}}>COMPASS</div><div style={{...M,fontSize:10,color:"#999",letterSpacing:"0.15em",marginBottom:28}}>STAGING ENVIRONMENT</div><div style={{marginBottom:14}}><label style={{...LB,color:"#999"}}>EMAIL</label><input value={e} onChange={x=>sE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} placeholder="you@humain.com" style={{...IP,background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)"}}/></div><div style={{marginBottom:20}}><label style={{...LB,color:"#999"}}>PASSWORD</label><div style={{position:"relative"}}><input type={sh?"text":"password"} value={p} onChange={x=>sP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} style={{...IP,background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)",paddingRight:40}}/><button onClick={()=>sSh(!sh)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#999"}}>{sh?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></div>{er&&<div style={{color:"#FF4B4B",fontSize:13,marginBottom:12,padding:"8px 12px",background:"rgba(255,75,75,0.06)",borderRadius:8}}>{er}</div>}<button onClick={go} disabled={b} style={{width:"100%",padding:"12px",background:"#009688",color:"#fff",border:"none",borderRadius:999,fontSize:14,fontWeight:600,cursor:b?"wait":"pointer",opacity:b?0.7:1}}>{b?"Signing in...":"Sign In"}</button></div></div></div>);}
 
 function DealModal({deal,onClose,onSave,onDel,token}){const nw=!deal?.id;const[f,sF]=useState({client_name:deal?.client_name||"",sector:deal?.sector||"",stage:deal?.stage||"Recognition",status:deal?.status||"Active",expected_value:deal?.expected_value||0,contact_name:deal?.contact_name||"",next_step:deal?.next_step||"",notes:deal?.notes||"",probability:deal?.probability||0,tags:deal?.tags||""});const[sv,sSv]=useState(false);const[ev,sEv]=useState([]);const s=(k,v)=>sF(p=>({...p,[k]:v}));
 useEffect(()=>{if(deal?.id&&token)q(`/rest/v1/deal_events?deal_id=eq.${deal.id}&select=*&order=created_at.desc&limit=15`,token).then(sEv).catch(()=>{});},[deal?.id,token]);
@@ -816,7 +816,7 @@ function FwAcc({b}){const[open,setOpen]=useState(false);return(
 const PH=({label,icon:I})=><div style={{textAlign:"center",paddingTop:80}}><I size={32} style={{color:"var(--muted)",opacity:0.3,marginBottom:12}}/><div style={{...T,fontSize:20,fontWeight:700,marginBottom:6}}>{label}</div><div style={{...M,fontSize:11,color:"var(--muted)",letterSpacing:"0.1em"}}>STAGING — COMING SOON</div></div>;
 
 export default function App(){
-  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[navH,sNavH]=useState(false);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[dealFilter,sDealFilter]=useState("");const[stageFilter,setStageFilter]=useState("");const[statusFilter,setStatusFilter]=useState("");const[dealSort,sDealSort]=useState("updated");const[chatActive,sChatActive]=useState(false);const[homeCat,sHomeCat]=useState("foryou");const[dashPeriod,sDashPeriod]=useState("all");const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[notifOpen,sNotifOpen]=useState(false);const[accessReqs,sAR]=useState([]);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
+  const[session,sS]=useState(null);const[profile,sP]=useState(null);const[deals,sD]=useState([]);const[tab,sT]=useState("home");const[dark,sDk]=useState(false);const[modal,sM]=useState(null);const[search,sSr]=useState("");const[srO,sSrO]=useState(false);const[dealFilter,sDealFilter]=useState("");const[stageFilter,setStageFilter]=useState("");const[statusFilter,setStatusFilter]=useState("");const[dealSort,sDealSort]=useState("updated");const[chatActive,sChatActive]=useState(false);const[homeCat,sHomeCat]=useState("foryou");const[dashPeriod,sDashPeriod]=useState("all");const[notif,sN]=useState(0);const[intel,sIntel]=useState(false);const[notifOpen,sNotifOpen]=useState(false);const[accessReqs,sAR]=useState([]);const[elKey,sElKey]=useState('');const[claudeKey,sCK]=useState('');
   const tk=session?.access_token;const isA=profile?.role==="admin";
   const[leads,sLeads]=useState([]);const[assets,sAssets]=useState([]);const[debriefs,sDeb]=useState([]);const[suggestions,sSugg]=useState([]);const[savedBriefs2,sSB2]=useState([]);
   const ld=useCallback(()=>{if(tk){q("/rest/v1/deals?select=*&order=updated_at.desc",tk).then(d=>sD(d||[])).catch(console.error);q("/rest/v1/leads?select=*&order=created_at.desc",tk).then(d=>sLeads(d||[])).catch(()=>{});q("/rest/v1/content_assets?select=*&order=created_at.desc",tk).then(d=>sAssets(d||[])).catch(()=>{});q("/rest/v1/debriefs?select=*&order=created_at.desc&limit=20",tk).then(d=>sDeb(d||[])).catch(()=>{});q('/rest/v1/agent_queue?status=eq.pending&select=*&order=created_at.desc&limit=8',tk).then(d=>sSugg(d||[]));q('/rest/v1/access_requests?select=*&order=requested_at.desc&limit=20',tk).then(d=>sAR(d||[])).then(d=>sSugg(d||[])).catch(()=>{});q('/rest/v1/briefs?select=id,client_name,sector&order=created_at.desc&limit=10',tk).then(d=>sSB2(d||[])).catch(()=>{});}},[tk]);
@@ -1107,26 +1107,32 @@ return(<div>
   }};
 
   return(<div style={{...th,fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-    <nav onMouseEnter={()=>sNavH(true)} onMouseLeave={()=>sNavH(false)} style={{width:navH?200:64,background:dark?"var(--panel)":"transparent",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:2,transition:"width .2s ease",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
+    <style>{`
+      .cr{width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:4px;transition:width .2s ease;overflow:hidden;position:fixed;top:0;left:0;bottom:0;z-index:100}
+      .cr:hover{width:200px}
+      .cr-lb{opacity:0;font-size:13px;font-weight:500;transition:opacity .15s;pointer-events:none;white-space:nowrap}
+      .cr:hover .cr-lb{opacity:1}
+      .cr-ui{opacity:0;transition:opacity .15s}
+      .cr:hover .cr-ui{opacity:1}
+    `}</style>
+    <nav className="cr" style={{background:dark?"var(--panel)":"transparent"}}>
         {/* Logo */}
-        <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,alignSelf:"flex-start",marginLeft:12,flexShrink:0}}>
+        <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,alignSelf:"flex-start",marginLeft:12,flexShrink:0}}>
           <svg width="26" height="22" viewBox="0 0 24 24" fill="none" stroke={dark?"#8AA0A6":"#1A1A1A"} strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
         </div>
-        {/* All nav items in flat list */}
+        {/* Nav items */}
         {[{id:"home",label:"Home",icon:Home},...TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)),{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
           <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:on?"#009688":dark?"#8AA0A6":"#8A9BAA",background:on?"rgba(0,150,136,0.12)":"transparent",border:"none",position:"relative",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
-            onMouseEnter={e=>{if(!on){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#555";}}}
-            onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color=on?"#009688":dark?"#8AA0A6":"#8A9BAA";}}}>
+            onMouseEnter={e=>{if(!on){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#1A1A1A";}}}
+            onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#8AA0A6":"#8A9BAA";}}}>
             <I size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:18}}/>
-            <span style={{fontSize:13,fontWeight:on?600:500,opacity:navH?1:0,transition:"opacity .15s",pointerEvents:"none"}}>{t.label}</span>
+            <span className="cr-lb" style={{fontWeight:on?600:500}}>{t.label}</span>
             {t.id==="admin"&&notif>0&&<span style={{position:"absolute",top:6,left:30,width:14,height:14,background:"#009688",color:"#fff",borderRadius:"50%",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}
           </button>);})}
         {/* Daily Intel */}
-        <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:intel?"#00B89C":dark?"#8AA0A6":"#8A9BAA",background:intel?"rgba(0,184,156,0.12)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
-          onMouseEnter={e=>{if(!intel){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color="#00B89C";}}}
-          onMouseLeave={e=>{if(!intel){e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#8AA0A6":"#8A9BAA";}}}>
+        <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:intel?"#00B89C":dark?"#8AA0A6":"#8A9BAA",background:intel?"rgba(0,184,156,0.12)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}>
           <div style={{position:"relative",flexShrink:0,minWidth:18,display:"flex",alignItems:"center",justifyContent:"center"}}><Activity size={18} strokeWidth={1.8}/><div style={{position:"absolute",top:-2,right:-3,width:6,height:6,borderRadius:8,background:"#00B89C",animation:"pulse 2s ease-in-out infinite"}}/></div>
-          <span style={{fontSize:13,fontWeight:500,opacity:navH?1:0,transition:"opacity .15s",pointerEvents:"none"}}>Daily Intel</span>
+          <span className="cr-lb">Daily Intel</span>
         </button>
         {/* Spacer */}
         <div style={{flex:1}}/>
@@ -1136,16 +1142,14 @@ return(<div>
           <button onClick={()=>sDk(true)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:dark?"rgba(0,150,136,0.12)":"transparent",color:dark?"#009688":"#a9a29d"}}><Moon size={14}/></button>
         </div>
         {/* Sign out */}
-        <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
-          onMouseEnter={e=>{e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#0a0a0a";}}
-          onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#5A7278":"#8A9BAA";}}>
-          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:20}}/><span style={{fontSize:13,fontWeight:500,opacity:navH?1:0,transition:"opacity .15s",pointerEvents:"none"}}>Sign out</span>
+        <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}>
+          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:18}}/><span className="cr-lb">Sign out</span>
         </button>
         {/* Avatar */}
-        <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",borderRadius:10,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",borderRadius:8,flexShrink:0}}>
           <div style={{width:32,height:32,borderRadius:"50%",background:"#009688",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:600,flexShrink:0}}>{nm[0]?.toUpperCase()}</div>
-          <div style={{display:"flex",flexDirection:"column",opacity:navH?1:0,transition:"opacity .15s",minWidth:0}}>
-            <div style={{fontSize:12,fontWeight:600,color:dark?"#E8F0F0":"#0a0a0a",whiteSpace:"nowrap"}}>{nm}</div>
+          <div className="cr-ui" style={{display:"flex",flexDirection:"column",minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:600,color:dark?"#E8F0F0":"#1A1A1A",whiteSpace:"nowrap"}}>{nm}</div>
             {isA&&<div style={{fontSize:10,color:dark?"#5A7278":"#8A9BAA"}}>Admin</div>}
           </div>
         </div>
