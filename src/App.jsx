@@ -46,9 +46,9 @@ const LB={...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",display:"b
 
 function Auth({onLogin}){const[e,sE]=useState("");const[p,sP]=useState("");const[sh,sSh]=useState(false);const[er,sEr]=useState("");const[b,sB]=useState(false);
 const go=async()=>{if(!e||!p){sEr("Enter email and password.");return;}sB(true);sEr("");try{onLogin(await auth(e,p));}catch(x){sEr(x.message);}finally{sB(false);}};
-return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter','DM Sans',sans-serif"}}>
-  {/* Left: form */}
-  <div style={{flex:1,background:"#F7F8FA",display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 80px",maxWidth:560,overflow:"auto"}}>
+return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter','DM Sans',sans-serif",background:"#F5F6F8"}}>
+  {/* Left 50%: form */}
+  <div style={{width:"50%",display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 72px",overflow:"auto"}}>
     {/* H mark */}
     <svg width="36" height="30" viewBox="0 0 108 93" fill="#1A1A1A" style={{marginBottom:40}}><path d="M18 36.2H90.4V56.2H18ZM90.5 19.5H18V0.2H0V92.3H18V72.9H90.4V92.3H108.4V0.2H90.4V19.6Z"/></svg>
     <div style={{fontSize:28,fontWeight:700,color:"#1A1A1A",marginBottom:8,letterSpacing:"-0.01em"}}>Welcome Back</div>
@@ -73,8 +73,9 @@ return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter',
     {/* Footer */}
     <div style={{marginTop:32,fontSize:12,color:"#B8C5CC",textAlign:"center",letterSpacing:"0.02em"}}>HUMAIN COMPASS v2.0 (Beta)</div>
   </div>
-  {/* Right: branded panel */}
-  <div style={{flex:1,background:"linear-gradient(145deg, #0D1B1E 0%, #023c47 50%, #0D1B1E 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",minWidth:0}}>
+  {/* Right 50%: floating branded card */}
+  <div style={{width:"50%",padding:16,display:"flex"}}>
+    <div style={{flex:1,background:"linear-gradient(145deg, #0D1B1E 0%, #023c47 50%, #0D1B1E 100%)",borderRadius:20,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
     {/* Subtle glow */}
     <div style={{position:"absolute",top:"40%",left:"50%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle, rgba(0,150,136,0.2) 0%, transparent 60%)",transform:"translate(-50%,-50%)",filter:"blur(40px)",pointerEvents:"none"}}/>
     <div style={{position:"absolute",top:"60%",left:"30%",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle, rgba(0,184,156,0.12) 0%, transparent 60%)",transform:"translate(-50%,-50%)",filter:"blur(30px)",pointerEvents:"none"}}/>
@@ -91,6 +92,7 @@ return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter',
         <div style={{width:8,height:8,borderRadius:"50%",background:"#00B89C"}}/>
         <div style={{width:8,height:8,borderRadius:"50%",background:"#009688"}}/>
       </div>
+    </div>
     </div>
   </div>
 </div>);}
