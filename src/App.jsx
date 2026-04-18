@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Home, Target, LayoutDashboard, Sparkles, Calendar, TrendingUp, Layers, Network, Settings, Database, LogOut, Sun, Moon, Search, Send, Plus, Eye, EyeOff, MessageSquare, X, FileText, Trash2, Save, Bell, Shield, Users, BarChart3, Megaphone, UserPlus, Globe, Zap, RefreshCw, Clock, Mic, MicOff, Volume2, PanelRightOpen, PanelRightClose, BookOpen, Activity } from "lucide-react";
+import { Home, Target, LayoutDashboard, Sparkles, Calendar, TrendingUp, Layers, Network, Settings, Database, LogOut, Sun, Moon, Search, Send, Plus, Eye, EyeOff, MessageSquare, X, FileText, Trash2, Save, Bell, Shield, Users, BarChart3, Megaphone, UserPlus, Globe, Zap, RefreshCw, Clock, Mic, MicOff, Volume2, PanelRightOpen, PanelRightClose, BookOpen, Activity, Upload } from "lucide-react";
 
 const SU = "https://nujczhqxcxuppatnjbon.supabase.co";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51amN6aHF4Y3h1cHBhdG5qYm9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MjIyMjAsImV4cCI6MjA4OTE5ODIyMH0.WDy1yI89XDk7g-jnPfrEmewvtayHi87lROeZlAZpZ8U";
@@ -91,6 +91,19 @@ return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter',
 </div>);}
 
 function DealModal({deal,onClose,onSave,onDel,token}){const nw=!deal?.id;const[f,sF]=useState({client_name:deal?.client_name||"",sector:deal?.sector||"",stage:deal?.stage||"Recognition",status:deal?.status||"Active",expected_value:deal?.expected_value||0,contact_name:deal?.contact_name||"",next_step:deal?.next_step||"",notes:deal?.notes||"",probability:deal?.probability||0,tags:deal?.tags||""});const[sv,sSv]=useState(false);const[ev,sEv]=useState([]);const s=(k,v)=>sF(p=>({...p,[k]:v}));
+const[updateText,sUT]=useState("");const[updateFile,sUF]=useState(null);const[posting,sPosting]=useState(false);const fileRef=useRef(null);
+const postUpdate=async()=>{if(!updateText.trim()&&!updateFile)return;if(!deal?.id)return;sPosting(true);try{
+  let fileInfo="";
+  if(updateFile){try{
+    const ext=updateFile.name.split(".").pop();const fname=deal.id+"_"+Date.now()+"."+ext;
+    const upRes=await fetch(SU+"/storage/v1/object/deal-files/"+fname,{method:"POST",headers:{Authorization:"Bearer "+token,apikey:SK,"Content-Type":updateFile.type},body:updateFile});
+    if(upRes.ok){fileInfo=" [File: "+updateFile.name+"]";}else{fileInfo=" [File upload failed: "+updateFile.name+"]";}
+  }catch(e){fileInfo=" [File: "+updateFile.name+" (upload unavailable)]";}}
+  const desc=(updateText.trim()||"File attached")+fileInfo;
+  await q("/rest/v1/deal_events",token,{method:"POST",body:JSON.stringify({deal_id:deal.id,event_type:"update",description:desc,created_at:new Date().toISOString()})});
+  sEv(prev=>[{event_type:"update",description:desc,created_at:new Date().toISOString()},...prev]);
+  sUT("");sUF(null);if(fileRef.current)fileRef.current.value="";
+}catch(e){alert("Failed to post update: "+e.message);}finally{sPosting(false);}};
 useEffect(()=>{if(deal?.id&&token)q(`/rest/v1/deal_events?deal_id=eq.${deal.id}&select=*&order=created_at.desc&limit=15`,token).then(sEv).catch(()=>{});},[deal?.id,token]);
 const sv2=async()=>{if(!f.client_name.trim())return;sSv(true);try{const pl={...f,expected_value:parseFloat(f.expected_value)||0,probability:parseInt(f.probability)||0,weighted_value:(parseFloat(f.expected_value)||0)*((parseInt(f.probability)||0)/100),updated_at:new Date().toISOString()};if(nw){const res=await q("/rest/v1/deals",token,{method:"POST",body:JSON.stringify(pl)});const newId=res?.[0]?.id;if(newId)await q("/rest/v1/deal_events",token,{method:"POST",body:JSON.stringify({deal_id:newId,event_type:"created",description:"Deal created: "+pl.client_name+" ("+pl.stage+")",created_at:new Date().toISOString()})}).catch(()=>{});}else{await q(`/rest/v1/deals?id=eq.${deal.id}`,token,{method:"PATCH",body:JSON.stringify(pl)});await q("/rest/v1/deal_events",token,{method:"POST",body:JSON.stringify({deal_id:deal.id,event_type:"updated",description:"Deal updated: "+Object.keys(pl).filter(k=>pl[k]!==deal[k]&&k!=="updated_at"&&k!=="weighted_value").join(", "),created_at:new Date().toISOString()})}).catch(()=>{});}onSave();}catch(x){alert(x.message);}finally{sSv(false);}};
 return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={onClose}><div style={{width:560,maxHeight:"85vh",background:"var(--panel)",borderRadius:20,overflow:"hidden",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}><div style={{padding:"18px 24px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{...T,fontSize:18,fontWeight:700}}>{nw?"New Deal":deal.client_name}</div><div style={{display:"flex",gap:8}}>{!nw&&<button onClick={()=>{if(confirm("Delete?"))onDel(deal.id);}} style={{...BG,padding:"6px 10px",color:"#FF4B4B"}}><Trash2 size={14}/></button>}<button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)"}}><X size={18}/></button></div></div>
@@ -105,7 +118,29 @@ return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",displa
 <div style={{gridColumn:"1/-1"}}><label style={LB}>NEXT STEP</label><input value={f.next_step} onChange={e=>s("next_step",e.target.value)} style={IP}/></div>
 <div style={{gridColumn:"1/-1"}}><label style={LB}>PRODUCTS / TAGS</label><input value={f.tags||""} onChange={e=>s("tags",e.target.value)} placeholder="e.g. HUMAIN ONE, HUMAIN Chat, Data Center" style={IP}/></div>
 <div style={{gridColumn:"1/-1"}}><label style={LB}>NOTES</label><textarea value={f.notes} onChange={e=>s("notes",e.target.value)} rows={3} style={{...IP,resize:"vertical"}}/></div>
-</div>{ev.length>0&&<div><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:8}}>ACTIVITY</div>{ev.map((e,i)=><div key={i} style={{padding:"6px 0",borderBottom:"1px solid var(--border)",fontSize:12,color:"var(--sub)",display:"flex",gap:10}}><span style={{...M,fontSize:10,color:"var(--muted)",width:65,flexShrink:0}}>{new Date(e.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</span><span>{e.description||e.event_type}</span></div>)}</div>}</div>
+</div>
+{/* Add Update */}
+{!nw&&<div style={{marginBottom:16,padding:16,background:"rgba(0,150,136,0.03)",borderRadius:10,border:"1px solid rgba(0,150,136,0.08)"}}>
+  <div style={{...M,fontSize:10,letterSpacing:"0.14em",color:"#009688",marginBottom:10}}>ADD UPDATE</div>
+  <textarea value={updateText} onChange={e=>sUT(e.target.value)} rows={2} placeholder="What happened with this deal?" style={{...IP,resize:"vertical",marginBottom:8,fontSize:13}}/>
+  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+      <input ref={fileRef} type="file" onChange={e=>sUF(e.target.files?.[0]||null)} style={{display:"none"}} id="deal-file"/>
+      <button onClick={()=>fileRef.current?.click()} style={{...BG,padding:"6px 12px",fontSize:11,display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Upload size={12}/>Attach file</button>
+      {updateFile&&<span style={{fontSize:11,color:"var(--sub)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{updateFile.name}</span>}
+    </div>
+    <button onClick={postUpdate} disabled={posting||(!updateText.trim()&&!updateFile)} style={{...BP,padding:"6px 16px",fontSize:11,opacity:posting||(!updateText.trim()&&!updateFile)?0.4:1,flexShrink:0}}>{posting?"Posting...":"Post"}</button>
+  </div>
+</div>}
+{/* Activity */}
+{ev.length>0&&<div><div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:8}}>ACTIVITY</div>{ev.map((e,i)=><div key={i} style={{padding:"8px 0",borderBottom:"1px solid var(--border)",fontSize:12,color:"var(--sub)",display:"flex",gap:10,alignItems:"flex-start"}}>
+  <span style={{...M,fontSize:10,color:"var(--muted)",width:65,flexShrink:0,paddingTop:1}}>{new Date(e.created_at).toLocaleDateString("en-GB",{day:"2-digit",month:"short"})}</span>
+  <div style={{flex:1,minWidth:0}}>
+    {e.event_type==="update"&&<span style={{display:"inline-block",padding:"1px 6px",borderRadius:999,background:"rgba(0,150,136,0.08)",color:"#009688",fontSize:9,fontWeight:600,marginRight:6,verticalAlign:"middle"}}>UPDATE</span>}
+    <span>{e.description||e.event_type}</span>
+  </div>
+</div>)}</div>}
+</div>
 <div style={{padding:"14px 24px",borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",gap:10}}><button onClick={onClose} style={BG}>Cancel</button><button onClick={sv2} disabled={sv} style={{...BP,opacity:sv?0.6:1}}><Save size={14} style={{marginRight:6}}/>{sv?"Saving...":nw?"Create":"Save"}</button></div></div></div>);}
 
 
@@ -1023,10 +1058,13 @@ return(<div>
     <div style={{...CS,padding:20}}>
       <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:14}}>PIPELINE FUNNEL</div>
       {STAGES.map(s=>{const cnt=ac.filter(d=>d.stage===s).length;const val=ac.filter(d=>d.stage===s).reduce((x,d)=>x+(d.expected_value||0),0);const pct=ac.length?Math.round(cnt/ac.length*100):0;return(
-        <div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,cursor:"pointer",padding:"2px 4px",borderRadius:8,transition:"background .15s"}}
+          onClick={()=>{setStageFilter(s);sT("crm");}}
+          onMouseEnter={e=>e.currentTarget.style.background="var(--panel2)"}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <span style={{...M,fontSize:10,width:80,flexShrink:0,color:"var(--sub)"}}>{s}</span>
           <div style={{flex:1,height:24,background:"var(--panel2)",borderRadius:8,overflow:"hidden",position:"relative"}}>
-            <div style={{width:pct+"%",height:"100%",background:SC[s],borderRadius:8,display:"flex",alignItems:"center",paddingLeft:6}}>
+            <div style={{width:pct+"%",height:"100%",background:SC[s],borderRadius:8,display:"flex",alignItems:"center",paddingLeft:6,transition:"width .4s ease"}}>
               {cnt>0&&<span style={{...M,fontSize:9,color:"#fff",fontWeight:600}}>{cnt}</span>}
             </div>
           </div>
@@ -1036,7 +1074,10 @@ return(<div>
     <div style={{...CS,padding:20}}>
       <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:14}}>SECTOR MIX</div>
       {SECTORS.map(s=>{const cnt=deals.filter(d=>d.sector===s).length;const pct=deals.length?Math.round(cnt/deals.length*100):0;return(
-        <div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,cursor:"pointer",padding:"4px 6px",borderRadius:8,transition:"background .15s"}}
+          onClick={()=>{sDealFilter(s);sT("crm");}}
+          onMouseEnter={e=>e.currentTarget.style.background="var(--panel2)"}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <div style={{width:10,height:10,borderRadius:8,background:XC[s],flexShrink:0}}/>
           <span style={{fontSize:12,flex:1}}>{s}</span>
           <div style={{width:60,height:6,background:"var(--panel2)",borderRadius:8,overflow:"hidden"}}><div style={{width:pct+"%",height:"100%",background:XC[s],borderRadius:8}}/></div>
@@ -1048,7 +1089,10 @@ return(<div>
     <div style={{...CS,padding:20}}>
       <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:14}}>WIN RATE BY SECTOR</div>
       {SECTORS.map(s=>{const total=deals.filter(d=>d.sector===s).length;const won2=deals.filter(d=>d.sector===s&&d.status==="Won").length;const rate=total?Math.round(won2/total*100):0;return(
-        <div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div key={s} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,cursor:"pointer",padding:"4px 6px",borderRadius:8,transition:"background .15s"}}
+          onClick={()=>{sDealFilter(s);sT("crm");}}
+          onMouseEnter={e=>e.currentTarget.style.background="var(--panel2)"}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <span style={{...M,fontSize:10,color:XC[s],width:90,flexShrink:0}}>{s}</span>
           <div style={{flex:1,height:6,background:"var(--panel2)",borderRadius:8,overflow:"hidden"}}><div style={{width:rate+"%",height:"100%",background:XC[s],borderRadius:8}}/></div>
           <span style={{...M,fontSize:10,color:"var(--muted)",width:30,textAlign:"right"}}>{rate}%</span>
@@ -1066,10 +1110,12 @@ return(<div>
     </div>
   </div>
   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
-    <div style={{...CS,padding:16,textAlign:"center"}}><div style={{...T,fontSize:22,fontWeight:800,color:"#009688"}}>{ac.length}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>ACTIVE</div></div>
-    <div style={{...CS,padding:16,textAlign:"center"}}><div style={{...T,fontSize:22,fontWeight:800,color:"#00B89C"}}>{wo.length}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>WON</div></div>
-    <div style={{...CS,padding:16,textAlign:"center"}}><div style={{...T,fontSize:22,fontWeight:800,color:"#FF4B4B"}}>{lo.length}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>LOST</div></div>
-    <div style={{...CS,padding:16,textAlign:"center"}}><div style={{...T,fontSize:22,fontWeight:800,color:"#FFB800"}}>{st.length}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>STALLED</div></div>
+    {[{label:"ACTIVE",count:ac.length,color:"#009688",status:"Active"},{label:"WON",count:wo.length,color:"#00B89C",status:"Won"},{label:"LOST",count:lo.length,color:"#FF4B4B",status:"Lost"},{label:"STALLED",count:st.length,color:"#FFB800",status:"Stalled"}].map(s=>
+    <div key={s.label} onClick={()=>{setStatusFilter(s.status);sT("crm");}} style={{...CS,padding:16,textAlign:"center",cursor:"pointer",transition:"transform .15s, box-shadow .15s"}}
+      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.08)";}}
+      onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+      <div style={{...T,fontSize:22,fontWeight:800,color:s.color}}>{s.count}</div><div style={{...M,fontSize:9,color:"var(--muted)"}}>{s.label}</div>
+    </div>)}
   </div>
   <div style={{...CS,padding:20,marginBottom:20}}>
     <div style={{...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",marginBottom:14}}>MONTHLY DEAL CREATION</div>
@@ -1244,8 +1290,7 @@ return(<div>
         <div style={{flex:1}}/>
         {/* Theme */}
         <div style={{display:"flex",gap:2,marginBottom:4,flexShrink:0}}>
-          <button onClick={()=>sDk(false)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:!dark?"rgba(0,150,136,0.12)":"transparent",color:!dark?"#009688":"#a9a29d"}}><Sun size={14}/></button>
-          <button onClick={()=>sDk(true)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:dark?"rgba(0,150,136,0.12)":"transparent",color:dark?"#009688":"#a9a29d"}}><Moon size={14}/></button>
+          <button onClick={()=>sDk(!dark)} style={{display:"flex",alignItems:"center",justifyContent:"center",width:32,height:32,borderRadius:8,border:"none",cursor:"pointer",background:"rgba(0,150,136,0.08)",color:"#009688"}}>{dark?<Sun size={14}/>:<Moon size={14}/>}</button>
         </div>
         {/* Sign out */}
         <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0,fontFamily:"inherit",textAlign:"left"}}>
