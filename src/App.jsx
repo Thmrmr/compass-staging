@@ -1107,61 +1107,46 @@ return(<div>
   }};
 
   return(<div style={{...th,fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-    <nav onMouseEnter={()=>sSb(true)} onMouseLeave={()=>sSb(false)} style={{width:sb?220:64,background:dark?"var(--panel)":"transparent",display:"flex",flexDirection:"column",transition:"width .28s cubic-bezier(.4,0,.2,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
-        {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",gap:10,padding:sb?"14px 16px":"14px 0",justifyContent:sb?"flex-start":"center",height:52,flexShrink:0}}>
-          <svg width="22" height="19" viewBox="0 0 28 24" fill="none" style={{flexShrink:0}}><path fillRule="evenodd" clipRule="evenodd" d="M4.71299 5.56863H22.6982V0H27.4012V23.5294H22.6982V17.9608H4.71299V23.5294H0V0H4.71299V5.56863ZM4.71299 13.7255H22.6982V9.80392H4.71299V13.7255Z" fill={dark?"#E8F0F0":"#1A1A1A"}/></svg>
-          {sb&&<span style={{...T,fontSize:12,letterSpacing:"0.08em",fontWeight:800,whiteSpace:"nowrap",color:dark?"#E8F0F0":"#1A1A1A"}}>HUMAIN</span>}
+    <nav onMouseEnter={()=>sSb(true)} onMouseLeave={()=>sSb(false)} style={{width:sb?220:60,display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 0",gap:4,transition:"width .2s cubic-bezier(.16,1,.3,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0,background:dark?"var(--panel)":"transparent"}}>
+        {/* HUMAIN wordmark — clips to H mark at 60px, reveals full word at 220px */}
+        <div style={{height:42,width:"calc(100% - 12px)",margin:"0 6px 18px",padding:"0 10px",display:"flex",alignItems:"center",borderRadius:10,overflow:"hidden",flexShrink:0}}>
+          <svg viewBox="0 0 615 94" fill={dark?"#E8F0F0":"#1A1A1A"} style={{height:22,width:"auto",display:"block",flexShrink:0}} xmlns="http://www.w3.org/2000/svg"><path d="M 18 36.199219 L 90.398438 36.199219 L 90.398438 56.199219 L 18 56.199219 Z M 90.5 19.5 L 18 19.5 L 18 0.199219 L 0 0.199219 L 0 92.300781 L 18 92.300781 L 18 72.898438 L 90.398438 72.898438 L 90.398438 92.300781 L 108.398438 92.300781 L 108.398438 0.199219 L 90.398438 0.199219 L 90.398438 19.601562 Z M 90.5 19.5"/><path d="M 204.398438 47.898438 C 204.398438 64.5 193.800781 76.5 179 76.5 C 164.199219 76.5 153.601562 64.601562 153.601562 47.898438 L 153.601562 0 L 135.601562 0 L 135.601562 47.898438 C 135.601562 74.398438 154.101562 94 179 94 C 203.898438 94 222.398438 74.398438 222.398438 47.898438 L 222.398438 0 L 204.398438 0 Z M 204.398438 47.898438"/><path d="M 295.5 38.699219 L 294.199219 38.699219 L 265.898438 0 L 249.601562 0 L 249.601562 92.101562 L 267.601562 92.101562 L 267.601562 27.699219 L 267.898438 27.699219 C 267.898438 27.699219 269.699219 33.601562 272.898438 38 L 285.601562 55.300781 L 303.601562 55.300781 L 316.300781 38 C 319.5 33.601562 321.300781 27.699219 321.300781 27.699219 L 321.601562 27.699219 L 321.601562 92.199219 L 339.601562 92.199219 L 339.601562 0 L 323.300781 0 L 295 38.699219 Z M 295.5 38.699219"/><path d="M 392.300781 57.101562 L 408.601562 16.601562 L 410.398438 16.601562 L 426.699219 57.101562 L 392.199219 57.101562 Z M 396.199219 0 L 359.101562 92.101562 L 378.199219 92.101562 L 385.601562 73.699219 L 433.398438 73.699219 L 440.800781 92.101562 L 460.398438 92.101562 L 423.398438 0 Z M 396.199219 0"/><path d="M 497.398438 0 L 479.398438 0 L 479.398438 92.101562 L 497.398438 92.101562 Z M 497.398438 0"/><path d="M 597 0 L 597 63.601562 L 540.898438 0 L 524.601562 0 L 524.601562 92.101562 L 542.601562 92.101562 L 542.601562 28.601562 L 598.699219 92.199219 L 615 92.199219 L 615 0 Z M 597 0"/></svg>
         </div>
-
-        {/* ── Home ── */}
-        <div style={{padding:"6px 8px",flexShrink:0}}>
-          <button onClick={()=>{sT("home");sChatActive(false);}} style={{width:sb?"100%":40,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,color:tab==="home"?"#009688":dark?"#8AA0A6":"#8A9BAA",background:tab==="home"?"rgba(0,150,136,0.12)":"transparent",border:"none",cursor:"pointer",overflow:"hidden",padding:sb?"0 10px":0,transition:"all .18s"}}
-            onMouseEnter={e=>{if(tab!=="home"){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";}}}
-            onMouseLeave={e=>{if(tab!=="home"){e.currentTarget.style.background="transparent";}}}>
-            <Home size={18} strokeWidth={1.8}/>{sb&&<span style={{fontSize:13,fontWeight:500}}>Home</span>}
-          </button>
+        {/* Nav items — all in flat list */}
+        {[{id:"home",label:"Home",icon:Home},...TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)),{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
+          <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:on?"#009688":dark?"#8AA0A6":"#4A5E6E",background:on?"rgba(0,150,136,0.08)":"transparent",border:"none",position:"relative",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0,fontFamily:"inherit",textAlign:"left"}}
+            onMouseEnter={e=>{if(!on){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#1A1A1A";}}}
+            onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#8AA0A6":"#4A5E6E";}}}>
+            <I size={20} strokeWidth={1.8} style={{flexShrink:0}}/>
+            {sb&&<span style={{fontSize:13,fontWeight:on?600:500}}>{t.label}</span>}
+            {t.id==="admin"&&notif>0&&<span style={{position:"absolute",top:6,left:30,width:14,height:14,background:"#009688",color:"#fff",borderRadius:"50%",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}
+          </button>);})}
+        {/* Daily Intel */}
+        <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:intel?"#00B89C":dark?"#8AA0A6":"#4A5E6E",background:intel?"rgba(0,184,156,0.08)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0,fontFamily:"inherit",textAlign:"left"}}>
+          <div style={{position:"relative",flexShrink:0}}><Activity size={20} strokeWidth={1.8}/><div style={{position:"absolute",top:-2,right:-2,width:6,height:6,borderRadius:3,background:"#00B89C",animation:"pulse 2s ease-in-out infinite"}}/></div>
+          {sb&&<span style={{fontSize:13,fontWeight:500}}>Daily Intel</span>}
+        </button>
+        {/* Spacer */}
+        <div style={{flex:1}}/>
+        {/* Theme */}
+        <div style={{display:"flex",gap:2,marginBottom:4,flexShrink:0}}>
+          <button onClick={()=>sDk(false)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:!dark?"rgba(0,150,136,0.12)":"transparent",color:!dark?"#009688":"#a9a29d"}}><Sun size={14}/></button>
+          <button onClick={()=>sDk(true)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:dark?"rgba(0,150,136,0.12)":"transparent",color:dark?"#009688":"#a9a29d"}}><Moon size={14}/></button>
         </div>
-
-        {/* Nav Items */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:2,overflowY:"auto",overflowX:"hidden",padding:sb?"4px 8px":"6px 8px",alignItems:sb?"stretch":"center",scrollbarWidth:"none"}}>
-          {TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)).map(t=>{const I=t.icon;const on=tab===t.id;
-          return(<div key={t.id}>
-            <button onClick={()=>{sT(t.id);sChatActive(false);}} style={{background:on?"rgba(0,150,136,0.12)":"none",width:sb?"100%":40,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:sb?10:0,cursor:"pointer",whiteSpace:"nowrap",overflow:"hidden",flexShrink:0,border:"none",position:"relative",transition:"all .18s",padding:sb?"0 10px":0,color:on?"#009688":dark?"#8AA0A6":"#8A9BAA"}}
-              onMouseEnter={e=>{if(!on){e.currentTarget.style.color=dark?"#E8F0F0":"#1A1A1A";e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";}}}
-              onMouseLeave={e=>{if(!on){e.currentTarget.style.color=dark?"#8AA0A6":"#8A9BAA";e.currentTarget.style.background="none";}}}>
-              <I size={18} strokeWidth={on?2:1.5}/>
-              {sb&&<span style={{fontSize:13,fontWeight:on?600:500,color:on?"#009688":dark?"#8AA0A6":"#555"}}>{t.label}</span>}
-              {t.id==="admin"&&notif>0&&<span style={{position:"absolute",right:sb?10:2,top:2,minWidth:15,height:15,borderRadius:8,background:"#FF4B4B",color:"#fff",fontSize:8,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{notif}</span>}
-            </button>
-          </div>);})}
-        </div>
-
-        {/* ── Bottom Controls ── */}
-        <div style={{padding:sb?"8px 12px":"8px",display:"flex",flexDirection:"column",gap:3,flexShrink:0,alignItems:sb?"stretch":"center"}}>
-          {[{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
-            <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{width:sb?"100%":40,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:on?"rgba(0,150,136,0.12)":"transparent",border:"none",cursor:"pointer",color:on?"#009688":dark?"#8AA0A6":"#8A9BAA",padding:sb?"0 10px":0,transition:"all .18s"}}
-              onMouseEnter={e=>{if(!on){e.currentTarget.style.color=dark?"#E8F0F0":"#1A1A1A";e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";}}}
-              onMouseLeave={e=>{if(!on){e.currentTarget.style.color=dark?"#8AA0A6":"#8A9BAA";e.currentTarget.style.background="transparent";}}}>
-              <I size={18} strokeWidth={on?2:1.5}/>{sb&&<span style={{fontSize:13,fontWeight:on?600:500,color:on?"#009688":dark?"#8AA0A6":"#555"}}>{t.label}</span>}
-            </button>);})}
-          <button onClick={()=>sIntel(!intel)} style={{width:sb?"100%":40,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,background:intel?"rgba(0,184,156,0.12)":"transparent",border:"none",cursor:"pointer",color:intel?"#00B89C":dark?"#8AA0A6":"#8A9BAA",padding:sb?"0 10px":0,transition:"all .18s"}}>
-            <div style={{position:"relative"}}><Activity size={18} strokeWidth={1.5}/><div style={{position:"absolute",top:-2,right:-2,width:6,height:6,borderRadius:8,background:"#00B89C",animation:"pulse 2s ease-in-out infinite"}}/></div>{sb&&<span style={{fontSize:13,fontWeight:500,color:intel?"#00B89C":"#555"}}>Daily Intel</span>}
-          </button>
-          <div style={{display:"flex",justifyContent:"center",gap:2}}>
-            <button onClick={()=>sDk(false)} style={{padding:"4px 7px",borderRadius:8,border:"none",cursor:"pointer",background:!dark?"rgba(0,150,136,0.12)":"transparent",color:!dark?"#009688":"#a9a29d"}}><Sun size={12}/></button>
-            <button onClick={()=>sDk(true)} style={{padding:"4px 7px",borderRadius:8,border:"none",cursor:"pointer",background:dark?"rgba(0,150,136,0.12)":"transparent",color:dark?"#009688":"#a9a29d"}}><Moon size={12}/></button>
-          </div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"2px 0"}}>
-            <div style={{width:32,height:32,borderRadius:"50%",background:"#009688",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:600}}>{nm[0]?.toUpperCase()}</div>
-            {sb&&<div style={{marginLeft:8,overflow:"hidden",flex:1}}><div style={{fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{nm}</div>{isA&&<div style={{...M,fontSize:7,color:"#5B7A0F",letterSpacing:"0.08em"}}>ADMIN</div>}</div>}
-          </div>
-          <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{width:sb?"100%":40,height:28,display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,padding:sb?"0 10px":0,background:"none",border:"none",cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",fontSize:11,borderRadius:8}}>
-            <LogOut size={13}/>{sb&&<span>Sign out</span>}
-          </button>
+        {/* Sign out */}
+        <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:10,height:40,borderRadius:10,cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0,fontFamily:"inherit",textAlign:"left"}}>
+          <LogOut size={20} strokeWidth={1.8} style={{flexShrink:0}}/>{sb&&<span style={{fontSize:13,fontWeight:500}}>Sign out</span>}
+        </button>
+        {/* Avatar */}
+        <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",borderRadius:10,flexShrink:0}}>
+          <div style={{width:32,height:32,borderRadius:"50%",background:"#009688",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,flexShrink:0}}>{nm[0]?.toUpperCase()}</div>
+          {sb&&<div style={{display:"flex",flexDirection:"column",minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:600,color:dark?"#E8F0F0":"#1A1A1A",whiteSpace:"nowrap"}}>{nm}</div>
+            {isA&&<div style={{fontSize:10,color:dark?"#5A7278":"#8A9BAA"}}>Admin</div>}
+          </div>}
         </div>
       </nav>
-    <main style={{flex:1,marginLeft:sb?220:64,transition:"margin-left .3s cubic-bezier(0.16,1,0.3,1)",padding:"16px 24px 16px 0",minHeight:"100vh"}}>
+    <main style={{flex:1,marginLeft:sb?220:60,transition:"margin-left .3s cubic-bezier(0.16,1,0.3,1)",padding:"16px 24px 16px 4px",minHeight:"100vh"}}>
       <div style={{background:"var(--panel)",borderRadius:20,border:dark?"none":"1px solid var(--border)",boxShadow:"0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.04)",overflow:"hidden",minHeight:"calc(100vh - 32px)"}}>
       <div style={{position:"sticky",top:0,zIndex:50,background:dark?"var(--panel)":"rgba(255,255,255,0.85)",backdropFilter:"blur(40px) saturate(150%)",WebkitBackdropFilter:"blur(40px) saturate(150%)",borderBottom:"1px solid var(--border)",padding:"10px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",borderRadius:"20px 20px 0 0"}}>
         <div style={{position:"relative",flex:1,maxWidth:360}}><Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)"}}/><input value={search} onChange={e=>{sSr(e.target.value);sSrO(true);}} onFocus={()=>sSrO(true)} onBlur={()=>setTimeout(()=>sSrO(false),200)} placeholder="Search deals..." style={{...IP,paddingLeft:32,fontSize:12}}/>{srO&&search&&sr.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:10,marginTop:4,boxShadow:"0 8px 24px rgba(0,0,0,0.1)",zIndex:60,overflow:"hidden",maxHeight:400,overflowY:"auto"}}>{sr.map((r,i)=><div key={i} onMouseDown={()=>{if(r.deal)sM({deal:r.deal});sSr("");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid var(--border)",fontSize:13,display:"flex",alignItems:"center",gap:10}}><span style={{...M,fontSize:9,padding:"2px 6px",borderRadius:8,background:r.type==="Deal"?"rgba(0,150,136,0.06)":r.type==="Lead"?"rgba(0,184,156,0.06)":"rgba(255,184,0,0.06)",color:r.type==="Deal"?"#009688":r.type==="Lead"?"#00B89C":"#FFB800",flexShrink:0}}>{r.type}</span><span style={{fontWeight:600,flex:1}}>{r.name}</span><span style={{...M,fontSize:10,color:"var(--muted)"}}>{r.sub}</span></div>)}</div>}</div>
