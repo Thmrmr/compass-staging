@@ -46,7 +46,54 @@ const LB={...M,fontSize:10,letterSpacing:"0.1em",color:"var(--muted)",display:"b
 
 function Auth({onLogin}){const[e,sE]=useState("");const[p,sP]=useState("");const[sh,sSh]=useState(false);const[er,sEr]=useState("");const[b,sB]=useState(false);
 const go=async()=>{if(!e||!p){sEr("Enter email and password.");return;}sB(true);sEr("");try{onLogin(await auth(e,p));}catch(x){sEr(x.message);}finally{sB(false);}};
-return(<div style={{position:"fixed",inset:0,background:"linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif"}}><div style={{width:380,background:"#fff",borderRadius:20,overflow:"hidden"}}><div style={{height:3,background:"linear-gradient(90deg,#009688,#00B89C,#B8E636)"}}/><div style={{padding:"40px 36px 36px"}}><div style={{...T,fontSize:22,fontWeight:800,marginBottom:4}}>COMPASS</div><div style={{...M,fontSize:10,color:"#999",letterSpacing:"0.15em",marginBottom:28}}>STAGING ENVIRONMENT</div><div style={{marginBottom:14}}><label style={{...LB,color:"#999"}}>EMAIL</label><input value={e} onChange={x=>sE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} placeholder="you@humain.com" style={{...IP,background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)"}}/></div><div style={{marginBottom:20}}><label style={{...LB,color:"#999"}}>PASSWORD</label><div style={{position:"relative"}}><input type={sh?"text":"password"} value={p} onChange={x=>sP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} style={{...IP,background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)",paddingRight:40}}/><button onClick={()=>sSh(!sh)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#999"}}>{sh?<EyeOff size={16}/>:<Eye size={16}/>}</button></div></div>{er&&<div style={{color:"#FF4B4B",fontSize:13,marginBottom:12,padding:"8px 12px",background:"rgba(255,75,75,0.06)",borderRadius:8}}>{er}</div>}<button onClick={go} disabled={b} style={{width:"100%",padding:"12px",background:"#009688",color:"#fff",border:"none",borderRadius:999,fontSize:14,fontWeight:600,cursor:b?"wait":"pointer",opacity:b?0.7:1}}>{b?"Signing in...":"Sign In"}</button></div></div></div>);}
+return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter','DM Sans',sans-serif"}}>
+  {/* Left: form */}
+  <div style={{flex:1,background:"#F7F8FA",display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 80px",maxWidth:560,overflow:"auto"}}>
+    {/* H mark */}
+    <svg width="36" height="30" viewBox="0 0 108 93" fill="#1A1A1A" style={{marginBottom:40}}><path d="M18 36.2H90.4V56.2H18ZM90.5 19.5H18V0.2H0V92.3H18V72.9H90.4V92.3H108.4V0.2H90.4V19.6Z"/></svg>
+    <div style={{fontSize:28,fontWeight:700,color:"#1A1A1A",marginBottom:8,letterSpacing:"-0.01em"}}>Welcome Back</div>
+    <div style={{fontSize:14,color:"#8A9BAA",marginBottom:36}}>Sign in to continue to HUMAIN COMPASS.</div>
+    {/* Email */}
+    <div style={{marginBottom:16}}>
+      <label style={{display:"block",fontSize:13,fontWeight:500,color:"#4A5E6E",marginBottom:6}}>Email</label>
+      <input value={e} onChange={x=>sE(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} placeholder="Enter your email address" style={{width:"100%",padding:"12px 14px",border:"1px solid rgba(0,0,0,0.1)",borderRadius:8,fontSize:14,outline:"none",background:"#fff",color:"#1A1A1A",boxSizing:"border-box"}}/>
+    </div>
+    {/* Password */}
+    <div style={{marginBottom:24}}>
+      <label style={{display:"block",fontSize:13,fontWeight:500,color:"#4A5E6E",marginBottom:6}}>Password</label>
+      <div style={{position:"relative"}}>
+        <input type={sh?"text":"password"} value={p} onChange={x=>sP(x.target.value)} onKeyDown={x=>x.key==="Enter"&&go()} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" style={{width:"100%",padding:"12px 14px",paddingRight:42,border:"1px solid rgba(0,0,0,0.1)",borderRadius:8,fontSize:14,outline:"none",background:"#fff",color:"#1A1A1A",boxSizing:"border-box"}}/>
+        <button onClick={()=>sSh(!sh)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#8A9BAA",padding:0}}>{sh?<EyeOff size={18}/>:<Eye size={18}/>}</button>
+      </div>
+    </div>
+    {/* Error */}
+    {er&&<div style={{color:"#D14343",fontSize:13,marginBottom:16,padding:"10px 14px",background:"rgba(209,67,67,0.06)",borderRadius:8,border:"1px solid rgba(209,67,67,0.1)"}}>{er}</div>}
+    {/* Sign in button */}
+    <button onClick={go} disabled={b} style={{width:"100%",padding:"13px 20px",background:"linear-gradient(135deg, #00B89C 0%, #009688 100%)",color:"#fff",border:"none",borderRadius:999,fontSize:15,fontWeight:600,cursor:b?"wait":"pointer",opacity:b?0.7:1,transition:"opacity .15s",letterSpacing:"0.01em"}}>{b?"Signing in...":"Sign in to HUMAIN COMPASS"}</button>
+    {/* Footer */}
+    <div style={{marginTop:32,fontSize:12,color:"#B8C5CC",textAlign:"center",letterSpacing:"0.02em"}}>HUMAIN COMPASS v2.0 (Beta)</div>
+  </div>
+  {/* Right: branded panel */}
+  <div style={{flex:1,background:"linear-gradient(145deg, #0D1B1E 0%, #023c47 50%, #0D1B1E 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden",minWidth:0}}>
+    {/* Subtle glow */}
+    <div style={{position:"absolute",top:"40%",left:"50%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle, rgba(0,150,136,0.2) 0%, transparent 60%)",transform:"translate(-50%,-50%)",filter:"blur(40px)",pointerEvents:"none"}}/>
+    <div style={{position:"absolute",top:"60%",left:"30%",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle, rgba(0,184,156,0.12) 0%, transparent 60%)",transform:"translate(-50%,-50%)",filter:"blur(30px)",pointerEvents:"none"}}/>
+    {/* Content */}
+    <div style={{position:"relative",zIndex:2,textAlign:"center",padding:"0 40px"}}>
+      {/* Full HUMAIN wordmark */}
+      <svg width="200" height="30" viewBox="0 0 615 94" fill="rgba(255,255,255,0.9)" xmlns="http://www.w3.org/2000/svg" style={{marginBottom:16}}><path d="M 18 36.199219 L 90.398438 36.199219 L 90.398438 56.199219 L 18 56.199219 Z M 90.5 19.5 L 18 19.5 L 18 0.199219 L 0 0.199219 L 0 92.300781 L 18 92.300781 L 18 72.898438 L 90.398438 72.898438 L 90.398438 92.300781 L 108.398438 92.300781 L 108.398438 0.199219 L 90.398438 0.199219 L 90.398438 19.601562 Z M 90.5 19.5"/><path d="M 204.398438 47.898438 C 204.398438 64.5 193.800781 76.5 179 76.5 C 164.199219 76.5 153.601562 64.601562 153.601562 47.898438 L 153.601562 0 L 135.601562 0 L 135.601562 47.898438 C 135.601562 74.398438 154.101562 94 179 94 C 203.898438 94 222.398438 74.398438 222.398438 47.898438 L 222.398438 0 L 204.398438 0 Z M 204.398438 47.898438"/><path d="M 295.5 38.699219 L 294.199219 38.699219 L 265.898438 0 L 249.601562 0 L 249.601562 92.101562 L 267.601562 92.101562 L 267.601562 27.699219 L 267.898438 27.699219 C 267.898438 27.699219 269.699219 33.601562 272.898438 38 L 285.601562 55.300781 L 303.601562 55.300781 L 316.300781 38 C 319.5 33.601562 321.300781 27.699219 321.300781 27.699219 L 321.601562 27.699219 L 321.601562 92.199219 L 339.601562 92.199219 L 339.601562 0 L 323.300781 0 L 295 38.699219 Z M 295.5 38.699219"/><path d="M 392.300781 57.101562 L 408.601562 16.601562 L 410.398438 16.601562 L 426.699219 57.101562 L 392.199219 57.101562 Z M 396.199219 0 L 359.101562 92.101562 L 378.199219 92.101562 L 385.601562 73.699219 L 433.398438 73.699219 L 440.800781 92.101562 L 460.398438 92.101562 L 423.398438 0 Z M 396.199219 0"/><path d="M 497.398438 0 L 479.398438 0 L 479.398438 92.101562 L 497.398438 92.101562 Z M 497.398438 0"/><path d="M 597 0 L 597 63.601562 L 540.898438 0 L 524.601562 0 L 524.601562 92.101562 L 542.601562 92.101562 L 542.601562 28.601562 L 598.699219 92.199219 L 615 92.199219 L 615 0 Z M 597 0"/></svg>
+      <div style={{fontFamily:"'Optician Sans','Inter',sans-serif",fontSize:48,fontWeight:500,color:"#fff",letterSpacing:"-0.02em",lineHeight:1.1,marginBottom:8}}>COMPASS</div>
+      <div style={{display:"inline-block",padding:"4px 12px",background:"rgba(0,184,156,0.15)",borderRadius:999,fontSize:11,fontWeight:600,color:"#00B89C",letterSpacing:"0.1em",marginBottom:24}}>BETA</div>
+      <div style={{fontSize:14,color:"rgba(255,255,255,0.5)",maxWidth:320,margin:"0 auto",lineHeight:1.6}}>Sovereign AI intelligence layer for client engagement, pipeline management, and strategic decision-making.</div>
+      {/* Three dots */}
+      <div style={{display:"flex",gap:6,justifyContent:"center",marginTop:40}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:"#B8E636"}}/>
+        <div style={{width:8,height:8,borderRadius:"50%",background:"#00B89C"}}/>
+        <div style={{width:8,height:8,borderRadius:"50%",background:"#009688"}}/>
+      </div>
+    </div>
+  </div>
+</div>);}
 
 function DealModal({deal,onClose,onSave,onDel,token}){const nw=!deal?.id;const[f,sF]=useState({client_name:deal?.client_name||"",sector:deal?.sector||"",stage:deal?.stage||"Recognition",status:deal?.status||"Active",expected_value:deal?.expected_value||0,contact_name:deal?.contact_name||"",next_step:deal?.next_step||"",notes:deal?.notes||"",probability:deal?.probability||0,tags:deal?.tags||""});const[sv,sSv]=useState(false);const[ev,sEv]=useState([]);const s=(k,v)=>sF(p=>({...p,[k]:v}));
 useEffect(()=>{if(deal?.id&&token)q(`/rest/v1/deal_events?deal_id=eq.${deal.id}&select=*&order=created_at.desc&limit=15`,token).then(sEv).catch(()=>{});},[deal?.id,token]);
