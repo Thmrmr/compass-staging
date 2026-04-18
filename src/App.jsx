@@ -167,7 +167,7 @@ const go=async()=>{if(!inp.trim()||b)return;const t=inp.trim();sI("");sB(true);s
 return(<div style={{...CS,border:"1px solid rgba(0,150,136,0.15)",boxShadow:"0 2px 12px rgba(0,150,136,0.06)"}}><div style={{height:2,background:"linear-gradient(90deg,#B8E636,#00B89C,#009688)"}}/><div style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:8}}>
       <div style={{width:26,height:26,borderRadius:8,background:"rgba(0,150,136,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#009688"}}><MessageSquare size={13}/></div>
       <span style={{...M,fontSize:10,letterSpacing:"0.06em",color:"var(--muted)",flex:1}}>COMPASS AI</span>
-      <select value={agentCtx} onChange={e=>sAgentCtx(e.target.value)} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:8,border:"1px solid var(--border)",background:"var(--panel2)",color:"var(--muted)",cursor:"pointer"}}>
+      <select value={agentCtx} onChange={e=>sAgentCtx(e.target.value)} style={{...M,fontSize:9,padding:"3px 8px",borderRadius:999,border:"1px solid var(--border)",background:"var(--panel2)",color:"var(--muted)",cursor:"pointer"}}>
         <option value="">General</option>{AGENTS.map(a=><option key={a.key} value={a.key}>{a.name}</option>)}
       </select>
     </div>
@@ -828,6 +828,7 @@ export default function App(){
   const[idleWarn,sIdleWarn]=useState(false);const[tourStep,sTourStep]=useState(-1);
   // Toast notification system
   const[toast,sToast]=useState(null);
+  useEffect(()=>{const id="compass-rail-css";if(!document.getElementById(id)){const s=document.createElement("style");s.id=id;s.textContent=".compass-rail{width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:4px;transition:width .2s ease;overflow:hidden;position:fixed;top:0;left:0;bottom:0;z-index:100}.compass-rail:hover{width:200px}.compass-rail .rl{opacity:0;font-size:13px;font-weight:500;transition:opacity .15s;pointer-events:none;white-space:nowrap}.compass-rail:hover .rl{opacity:1}";document.head.appendChild(s);}},[])
   const showToast=(msg,type)=>{sToast({msg,type});setTimeout(()=>sToast(null),5000);};const idleRef=useRef(null);const warnRef=useRef(null);
   useEffect(()=>{if(!tk)return;
     const reset=()=>{clearTimeout(idleRef.current);clearTimeout(warnRef.current);sIdleWarn(false);
@@ -1107,48 +1108,33 @@ return(<div>
   }};
 
   return(<div style={{...th,fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-    <style>{`
-      .cr{width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:4px;transition:width .2s ease;overflow:hidden;position:fixed;top:0;left:0;bottom:0;z-index:100}
-      .cr:hover{width:200px}
-      .cr-lb{opacity:0;font-size:13px;font-weight:500;transition:opacity .15s;pointer-events:none;white-space:nowrap}
-      .cr:hover .cr-lb{opacity:1}
-      .cr-ui{opacity:0;transition:opacity .15s}
-      .cr:hover .cr-ui{opacity:1}
-    `}</style>
-    <nav className="cr" style={{background:dark?"var(--panel)":"transparent"}}>
-        {/* Logo */}
+    <nav className="compass-rail" style={{background:dark?"var(--panel)":"transparent"}}>
         <div style={{width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,alignSelf:"flex-start",marginLeft:12,flexShrink:0}}>
           <svg width="26" height="22" viewBox="0 0 24 24" fill="none" stroke={dark?"#8AA0A6":"#1A1A1A"} strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
         </div>
-        {/* Nav items */}
         {[{id:"home",label:"Home",icon:Home},...TABS.filter(t=>t.id!=="home"&&(!t.ao||isA)),{id:"framework",label:"Framework",icon:Layers},{id:"engage",label:"Engage OS",icon:Network}].map(t=>{const I=t.icon;const on=tab===t.id;return(
           <button key={t.id} onClick={()=>{sT(t.id);sChatActive(false);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:on?"#009688":dark?"#8AA0A6":"#8A9BAA",background:on?"rgba(0,150,136,0.12)":"transparent",border:"none",position:"relative",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}
             onMouseEnter={e=>{if(!on){e.currentTarget.style.background=dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.04)";e.currentTarget.style.color=dark?"#E8F0F0":"#1A1A1A";}}}
             onMouseLeave={e=>{if(!on){e.currentTarget.style.background="transparent";e.currentTarget.style.color=dark?"#8AA0A6":"#8A9BAA";}}}>
             <I size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:18}}/>
-            <span className="cr-lb" style={{fontWeight:on?600:500}}>{t.label}</span>
+            <span className="rl" style={{fontWeight:on?600:500}}>{t.label}</span>
             {t.id==="admin"&&notif>0&&<span style={{position:"absolute",top:6,left:30,width:14,height:14,background:"#009688",color:"#fff",borderRadius:"50%",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{notif}</span>}
           </button>);})}
-        {/* Daily Intel */}
         <button onClick={()=>sIntel(!intel)} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:intel?"#00B89C":dark?"#8AA0A6":"#8A9BAA",background:intel?"rgba(0,184,156,0.12)":"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}>
           <div style={{position:"relative",flexShrink:0,minWidth:18,display:"flex",alignItems:"center",justifyContent:"center"}}><Activity size={18} strokeWidth={1.8}/><div style={{position:"absolute",top:-2,right:-3,width:6,height:6,borderRadius:8,background:"#00B89C",animation:"pulse 2s ease-in-out infinite"}}/></div>
-          <span className="cr-lb">Daily Intel</span>
+          <span className="rl">Daily Intel</span>
         </button>
-        {/* Spacer */}
         <div style={{flex:1}}/>
-        {/* Theme toggle */}
         <div style={{display:"flex",gap:2,marginBottom:4,flexShrink:0}}>
           <button onClick={()=>sDk(false)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:!dark?"rgba(0,150,136,0.12)":"transparent",color:!dark?"#009688":"#a9a29d"}}><Sun size={14}/></button>
           <button onClick={()=>sDk(true)} style={{padding:"5px 8px",borderRadius:8,border:"none",cursor:"pointer",background:dark?"rgba(0,150,136,0.12)":"transparent",color:dark?"#009688":"#a9a29d"}}><Moon size={14}/></button>
         </div>
-        {/* Sign out */}
         <button onClick={()=>{sS(null);sP(null);sD([]);}} style={{display:"flex",alignItems:"center",gap:12,width:"calc(100% - 12px)",margin:"0 6px",padding:"0 10px",height:32,borderRadius:8,cursor:"pointer",color:dark?"#5A7278":"#8A9BAA",background:"transparent",border:"none",whiteSpace:"nowrap",transition:"background .15s, color .15s",flexShrink:0}}>
-          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:18}}/><span className="cr-lb">Sign out</span>
+          <LogOut size={18} strokeWidth={1.8} style={{flexShrink:0,minWidth:18}}/><span className="rl">Sign out</span>
         </button>
-        {/* Avatar */}
         <div style={{display:"flex",alignItems:"center",gap:10,width:"calc(100% - 12px)",margin:"4px 6px 0",padding:"6px 4px",borderRadius:8,flexShrink:0}}>
           <div style={{width:32,height:32,borderRadius:"50%",background:"#009688",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:600,flexShrink:0}}>{nm[0]?.toUpperCase()}</div>
-          <div className="cr-ui" style={{display:"flex",flexDirection:"column",minWidth:0}}>
+          <div className="rl" style={{display:"flex",flexDirection:"column",minWidth:0}}>
             <div style={{fontSize:12,fontWeight:600,color:dark?"#E8F0F0":"#1A1A1A",whiteSpace:"nowrap"}}>{nm}</div>
             {isA&&<div style={{fontSize:10,color:dark?"#5A7278":"#8A9BAA"}}>Admin</div>}
           </div>
