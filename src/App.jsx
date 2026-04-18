@@ -1276,28 +1276,40 @@ return(<div>
     {toast&&<div style={{position:"fixed",top:20,right:20,background:toast.type==="error"?"#FF4B4B":"#009688",color:"#fff",padding:"12px 20px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",zIndex:3000,fontSize:13,fontWeight:500,display:"flex",alignItems:"center",gap:8,animation:"fadeIn .2s"}}>{toast.msg}<button onClick={()=>sToast(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.7)",cursor:"pointer",marginLeft:8}}><X size={14}/></button></div>}
     
     {tourStep>=0&&(()=>{const steps=[
-      {title:"Welcome to COMPASS",desc:"Your sovereign intelligence layer. Let's take a quick tour of what's here.",tab:"home"},
-      {title:"AI Chat",desc:"Ask about deals, pipeline, strategy. Mention a client meeting and COMPASS will offer to register the deal automatically.",tab:"home"},
-      {title:"CRM Pipeline",desc:"Your 5-stage pipeline kanban. Click any deal to view, edit, or track activity. Use filters to slice by sector, stage, or status.",tab:"crm"},
-      {title:"Dashboard",desc:"Pipeline health at a glance. Stage breakdown, sector coverage, stalled deals alert. Admin users see the CEO Executive Summary.",tab:"dashboard"},
-      {title:"12 Agents",desc:"Sovereign intelligence agents that analyze your pipeline. Run individually or all at once. Logic agents score deals and flag issues. AI agents provide strategic insights.",tab:"agents"},
-      {title:"Meeting Briefs",desc:"Select a deal, fill in context, generate an AI brief. 6 sections: client context, belief statement, conversation flow, questions, objection prep, next step. Saves automatically.",tab:"meetings"},
-      {title:"Marketing",desc:"Campaigns, leads, and content assets. Full CRUD — create, edit, delete. Calendar view shows campaign timeline.",tab:"marketing"},
-      {title:"The Framework",desc:"Sector beliefs, 5-stage progression, 8 principles, irreversibility conditions. The operating system of HUMAIN's client relationships.",tab:"framework"},
-      {title:"Engagement OS",desc:"Sector entry scripts, meeting toolkit, signal decoder, cross-sell logic, advisory positioning. Everything for every meeting.",tab:"engage"},
-      {title:"Tour Complete",desc:"You're ready. COMPASS learns from every deal, every debrief, every meeting. The intelligence compounds.",tab:"home"},
-    ];const step=steps[tourStep]||steps[0];return(
+      {title:"Welcome to COMPASS",tab:"Home",desc:"HUMAIN COMPASS is a sovereign AI-powered CRM and intelligence platform built for the HUMAIN sales and marketing team.",bullets:["Built on Supabase (Bahrain region), data stays sovereign","12 AI agents that analyze your pipeline in real-time","Claude-powered chat with live deal context","Voice input in English and Arabic"]},
+      {title:"AI chat",tab:"Home",desc:"The chat understands your entire pipeline. Ask it anything. It sees every deal, meeting, and stalled opportunity in real-time.",bullets:["Try: 'What meetings do I have this week?'","Try: 'I just met with STC about a 5M AI platform deal'","Try: 'Help me prep for my meeting with Dr. Sulaiman Al Habib'","Switch agents via the dropdown for specialized perspectives","Voice: tap the mic, speak, it auto-sends after you stop"]},
+      {title:"CRM pipeline",tab:"CRM",desc:"A full pipeline kanban based on HUMAIN's proprietary 5-stage progression: Recognition, Proof, Integration, Dependency, Expansion.",bullets:["Click any deal card to open the full detail modal","Edit client, sector, value, stage, probability, notes, next steps","Every change is logged as a deal event with timestamp","Filter by sector or stage to slice the view","Click '+ New Deal' to create from scratch"]},
+      {title:"Dashboard",tab:"Dashboard",desc:"Real-time KPIs and visual breakdowns of your entire pipeline. This is the view the CEO sees.",bullets:["Total pipeline value, deal count, average deal size, weighted value","Stage breakdown bar: see where deals are concentrated","Sector distribution: which verticals are strongest","Stalled deals alert: any deal untouched for 14+ days gets flagged","Admin users see the CEO Executive Summary at the bottom"]},
+      {title:"12 sovereign agents",tab:"Agents",desc:"Intelligence agents that run analysis on your live pipeline data. Each has a specific role, from deal scoring to competitive intelligence.",bullets:["Deal Scorer, Pipeline Auditor, Meeting Prep, Risk Monitor, Competitive Intel, and 7 more","Click any agent card to run it with specific recommendations","'Run All' executes every agent sequentially","AI agents call Claude with your full pipeline context"]},
+      {title:"Meeting briefs",tab:"Meetings",desc:"AI-generated meeting preparation briefs and post-meeting debrief capture. Never walk into a meeting unprepared.",bullets:["Select a deal, fill in meeting type and context, generate brief","Brief: client context, belief statement, conversation flow, key questions, objection handling, next steps","After the meeting: log a debrief with outcomes and follow-ups","Each brief uses the Framework and Engagement OS knowledge base"]},
+      {title:"Marketing hub",tab:"Marketing",desc:"Campaign management, lead tracking, and content asset library with full create-read-update-delete operations.",bullets:["Campaigns: status, channel, budget, start/end dates","Leads: inbound leads with source, status, and assigned owner","Content: manage marketing assets (decks, proposals, one-pagers)","Calendar view shows campaign timeline across months"]},
+      {title:"Framework and Engagement OS",tab:"Framework",desc:"The intellectual foundation of HUMAIN's sales methodology. Built on our own thinking, not generic sales playbooks.",bullets:["Framework: sector beliefs, 5-stage progression, 8 principles, irreversibility conditions","Engagement OS: sector entry scripts, meeting toolkit, signal decoder, cross-sell logic","Both are embedded as rich editorial pages you can scroll through","The AI chat and agents reference this knowledge base in every response"]},
+      {title:"Admin and notifications",tab:"Admin",desc:"User management, access request approval, and real-time notification system.",bullets:["Approve or reject access requests with one click","Manage user roles: Admin, Manager, Member, Viewer","Notifications poll every 60 seconds with tab title flash","Bell icon shows unread count badge"]},
+      {title:"You're ready",tab:"Home",desc:"COMPASS learns from every deal, every debrief, every meeting. The intelligence compounds over time.",bullets:["Voice works in English and Arabic","Dark mode toggle at the bottom of the sidebar","Daily Intel panel shows overnight pipeline changes","Everything runs on sovereign infrastructure, no data leaves the Kingdom"]},
+    ];const step=steps[tourStep]||steps[0];const tabMap={home:"Home",crm:"CRM",dashboard:"Dashboard",agents:"Agents",meetings:"Meetings",marketing:"Marketing",framework:"Framework",engage:"Engage OS",admin:"Admin"};return(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000}} onClick={()=>sTourStep(-1)}>
-        <div style={{background:"var(--panel)",borderRadius:20,padding:"28px 32px",maxWidth:420,textAlign:"center"}} onClick={e=>e.stopPropagation()}>
-          <div style={{...M,fontSize:9,color:"#009688",letterSpacing:"0.12em",marginBottom:8}}>STEP {tourStep+1} OF {steps.length}</div>
-          <div style={{...T,fontSize:20,fontWeight:800,marginBottom:8}}>{step.title}</div>
-          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6,marginBottom:20}}>{step.desc}</div>
-          <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-            {tourStep>0&&<button onClick={()=>{sTourStep(tourStep-1);sT(steps[tourStep-1].tab);sChatActive(false);}} style={{...BG,padding:"8px 20px"}}>Back</button>}
-            {tourStep<steps.length-1?<button onClick={()=>{sTourStep(tourStep+1);sT(steps[tourStep+1].tab);sChatActive(false);}} style={{...BP,padding:"8px 24px"}}>Next</button>
-            :<button onClick={()=>sTourStep(-1)} style={{...BP,padding:"8px 24px"}}>Finish</button>}
+        <div style={{background:"var(--panel)",borderRadius:20,border:"1px solid var(--border)",padding:"32px 36px",maxWidth:540,width:"90%",textAlign:"left",position:"relative"}} onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>sTourStep(-1)} style={{position:"absolute",top:24,right:28,background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4}}><X size={16}/></button>
+          <div style={{...M,fontSize:10,fontWeight:600,color:"#009688",letterSpacing:"0.14em",marginBottom:12}}>STEP {tourStep+1} OF {steps.length}</div>
+          <div style={{...T,fontFamily:"'Optician Sans','Space Grotesk',system-ui,sans-serif",fontSize:20,fontWeight:500,marginBottom:8,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>{step.title}<span style={{fontSize:10,fontWeight:600,color:"#009688",background:"rgba(0,150,136,0.08)",padding:"3px 10px",borderRadius:999,letterSpacing:"0.02em"}}>{step.tab}</span></div>
+          <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.7,marginBottom:16}}>{step.desc}</div>
+          <div style={{height:1,background:"var(--border)",marginBottom:16}}/>
+          {step.bullets&&<div style={{background:"rgba(0,0,0,0.03)",borderRadius:10,padding:"16px 20px",marginBottom:24}}>
+            {step.bullets.map((b,i)=><div key={i} style={{fontSize:13,color:"var(--text)",lineHeight:1.6,paddingLeft:18,position:"relative",marginBottom:i<step.bullets.length-1?8:0}}>
+              <span style={{position:"absolute",left:0,color:"#009688",fontWeight:700,fontSize:b.startsWith("Try:")?8:13,top:b.startsWith("Try:")?3:0}}>{b.startsWith("Try:")?"\u25B6":"\u2022"}</span>
+              {b.startsWith("Try:")
+                ?<><span style={{color:"#009688",fontWeight:600}}>Try: </span><span style={{color:"var(--sub)"}}>{b.slice(5)}</span></>
+                :b}
+            </div>)}
+          </div>}
+          <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>{steps.map((_,i)=><div key={i} onClick={()=>{sTourStep(i);sT(steps[i].tab.toLowerCase());sChatActive(false);}} style={{width:i===tourStep?22:6,height:6,borderRadius:999,background:i===tourStep?"#009688":i<tourStep?"#00B89C":"var(--border)",cursor:"pointer",transition:"width .2s"}}/>)}</div>
+            <div style={{display:"flex",gap:8}}>
+              {tourStep>0&&<button onClick={()=>{sTourStep(tourStep-1);sT(steps[tourStep-1].tab.toLowerCase());sChatActive(false);}} style={{background:"transparent",border:"1px solid var(--border)",borderRadius:999,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer",color:"var(--sub)",fontFamily:"inherit"}}>Back</button>}
+              {tourStep<steps.length-1?<button onClick={()=>{sTourStep(tourStep+1);sT(steps[tourStep+1].tab.toLowerCase());sChatActive(false);}} style={{background:"#009688",border:"none",borderRadius:999,padding:"8px 22px",fontSize:12,fontWeight:600,cursor:"pointer",color:"#fff",fontFamily:"inherit"}}>Next</button>
+              :<button onClick={()=>sTourStep(-1)} style={{background:"#009688",border:"none",borderRadius:999,padding:"8px 22px",fontSize:12,fontWeight:600,cursor:"pointer",color:"#fff",fontFamily:"inherit"}}>Finish</button>}
+            </div>
           </div>
-          <div style={{display:"flex",gap:4,justifyContent:"center",marginTop:14}}>{steps.map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:8,background:i===tourStep?"#009688":i<tourStep?"#00B89C":"var(--border)"}}/>)}</div>
         </div>
       </div>);})()}
     {idleWarn&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
