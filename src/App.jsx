@@ -1107,11 +1107,11 @@ return(<div>
   }};
 
   return(<div style={{...th,fontFamily:"'ABC Repro','Inter','DM Sans',sans-serif",background:"var(--bg)",color:"var(--text)",minHeight:"100vh",display:"flex"}}>
-    <nav style={{width:sb?220:64,background:dark?"var(--panel)":"transparent",display:"flex",flexDirection:"column",transition:"width .28s cubic-bezier(.4,0,.2,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
-        {/* ── H Logo ── */}
-        <div onClick={()=>sSb(!sb)} style={{display:"flex",alignItems:"center",justifyContent:sb?"flex-start":"center",gap:8,padding:sb?"14px 16px":"14px 0",height:52,cursor:"pointer",flexShrink:0}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={dark?"#8AA0A6":"#1A1A1A"} strokeWidth="2.2" strokeLinecap="round"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>
-          {sb&&<span style={{...T,fontSize:12,letterSpacing:"0.08em",fontWeight:800}}>HUMAIN</span>}
+    <nav onMouseEnter={()=>sSb(true)} onMouseLeave={()=>sSb(false)} style={{width:sb?220:64,background:dark?"var(--panel)":"transparent",display:"flex",flexDirection:"column",transition:"width .28s cubic-bezier(.4,0,.2,1)",position:"fixed",top:0,left:0,bottom:0,zIndex:100,overflow:"hidden",flexShrink:0}}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:sb?"14px 16px":"14px 0",justifyContent:sb?"flex-start":"center",height:52,flexShrink:0}}>
+          <svg width="22" height="19" viewBox="0 0 28 24" fill="none" style={{flexShrink:0}}><path fillRule="evenodd" clipRule="evenodd" d="M4.71299 5.56863H22.6982V0H27.4012V23.5294H22.6982V17.9608H4.71299V23.5294H0V0H4.71299V5.56863ZM4.71299 13.7255H22.6982V9.80392H4.71299V13.7255Z" fill={dark?"#E8F0F0":"#1A1A1A"}/></svg>
+          {sb&&<span style={{...T,fontSize:12,letterSpacing:"0.08em",fontWeight:800,whiteSpace:"nowrap",color:dark?"#E8F0F0":"#1A1A1A"}}>HUMAIN</span>}
         </div>
 
         {/* ── Home ── */}
