@@ -117,7 +117,7 @@ return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",displa
 
 
 function useSTT(){const[listening,setL]=useState(false);const[transcript,setTr]=useState("");const recRef=useRef(null);const onDoneRef=useRef(null);
-const start=useCallback(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;const r=new SR();r.continuous=false;r.interimResults=true;r.lang="en-US";let buf="";r.onresult=(e)=>{buf="";for(let i=0;i<e.results.length;i++)buf+=e.results[i][0].transcript;setTr(buf);};r.onend=()=>{setL(false);if(buf.trim()&&onDoneRef.current){const finalText=buf;setTimeout(()=>onDoneRef.current(finalText),100);}};r.onerror=()=>setL(false);recRef.current=r;r.start();setL(true);},[]);
+const start=useCallback(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;const r=new SR();r.continuous=false;r.interimResults=true;r.lang="en-US";let buf="";r.onresult=(e)=>{buf="";for(let i=0;i<e.results.length;i++)buf+=e.results[i][0].transcript;setTr(buf);};r.onend=()=>{setL(false);if(buf.trim()&&onDoneRef.current){const finalText=buf;setTimeout(()=>onDoneRef.current(finalText),600);}};r.onerror=()=>setL(false);recRef.current=r;r.start();setL(true);},[]);
 const stop=useCallback(()=>{recRef.current?.stop();setL(false);},[]);
 return{listening,transcript,start,stop,setTranscript:setTr,onDoneRef};}
 
@@ -181,7 +181,7 @@ function MD({text}){if(!text)return null;const lines=text.split("\n");const out=
 
 function Chat({deals,profile,elKey,claudeKey,token,onDealCreated,onChatActive}){const[ms,sMs]=useState([]);const[inp,sI]=useState("");const[b,sB]=useState(false);const end=useRef(null);const stt=useSTT();const goRef=useRef(null);
 useEffect(()=>{if(stt.transcript)sI(stt.transcript);},[stt.transcript]);
-stt.onDoneRef.current=(text)=>{sI("");if(goRef.current)goRef.current(text);};
+stt.onDoneRef.current=(text)=>{if(goRef.current)goRef.current(text);};
   const[pendingDeal,sPD]=useState(null);const[agentCtx,sAgentCtx]=useState("");const[savingDeal,sSD]=useState(false);
   const saveDeal=async()=>{if(!pendingDeal?.client_name)return;sSD(true);try{
     const pl={client_name:pendingDeal.client_name,sector:pendingDeal.sector||"",stage:pendingDeal.stage||"Recognition",status:"Active",expected_value:parseFloat(pendingDeal.expected_value)||0,contact_name:pendingDeal.contact_name||"",next_step:pendingDeal.next_step||"",updated_at:new Date().toISOString()};
