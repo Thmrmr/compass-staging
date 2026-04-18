@@ -73,10 +73,19 @@ return(<div style={{position:"fixed",inset:0,display:"flex",fontFamily:"'Inter',
     {/* Footer */}
     <div style={{marginTop:32,fontSize:12,color:"#B8C5CC",textAlign:"center",letterSpacing:"0.02em"}}>HUMAIN COMPASS v2.0 (Beta)</div>
   </div>
-  {/* Right 50%: floating branded card, image only */}
+  {/* Right 50%: floating branded card with full-bleed image */}
   <div style={{width:"50%",padding:16,display:"flex",flexDirection:"column"}}>
-    <div style={{flex:1,borderRadius:20,overflow:"hidden",minHeight:0,background:"#0D1F22",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <img src="/compass-hero.jpg" alt="HUMAIN COMPASS" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
+    <div style={{flex:1,borderRadius:20,position:"relative",overflow:"hidden",minHeight:0}}>
+      {/* Full-bleed hero image */}
+      <img src="/compass-hero.jpg" alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+      {/* Dark overlay for text readability */}
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(13,27,30,0.75) 0%, rgba(13,27,30,0.1) 40%, rgba(13,27,30,0.3) 100%)"}}/>
+      {/* Title at top */}
+      <div style={{position:"relative",zIndex:2,textAlign:"center",padding:"48px 40px 0",height:"100%"}}>
+        <svg width="180" height="28" viewBox="0 0 615 94" fill="rgba(255,255,255,0.9)" xmlns="http://www.w3.org/2000/svg" style={{marginBottom:12}}><path d="M 18 36.199219 L 90.398438 36.199219 L 90.398438 56.199219 L 18 56.199219 Z M 90.5 19.5 L 18 19.5 L 18 0.199219 L 0 0.199219 L 0 92.300781 L 18 92.300781 L 18 72.898438 L 90.398438 72.898438 L 90.398438 92.300781 L 108.398438 92.300781 L 108.398438 0.199219 L 90.398438 0.199219 L 90.398438 19.601562 Z M 90.5 19.5"/><path d="M 204.398438 47.898438 C 204.398438 64.5 193.800781 76.5 179 76.5 C 164.199219 76.5 153.601562 64.601562 153.601562 47.898438 L 153.601562 0 L 135.601562 0 L 135.601562 47.898438 C 135.601562 74.398438 154.101562 94 179 94 C 203.898438 94 222.398438 74.398438 222.398438 47.898438 L 222.398438 0 L 204.398438 0 Z M 204.398438 47.898438"/><path d="M 295.5 38.699219 L 294.199219 38.699219 L 265.898438 0 L 249.601562 0 L 249.601562 92.101562 L 267.601562 92.101562 L 267.601562 27.699219 L 267.898438 27.699219 C 267.898438 27.699219 269.699219 33.601562 272.898438 38 L 285.601562 55.300781 L 303.601562 55.300781 L 316.300781 38 C 319.5 33.601562 321.300781 27.699219 321.300781 27.699219 L 321.601562 27.699219 L 321.601562 92.199219 L 339.601562 92.199219 L 339.601562 0 L 323.300781 0 L 295 38.699219 Z M 295.5 38.699219"/><path d="M 392.300781 57.101562 L 408.601562 16.601562 L 410.398438 16.601562 L 426.699219 57.101562 L 392.199219 57.101562 Z M 396.199219 0 L 359.101562 92.101562 L 378.199219 92.101562 L 385.601562 73.699219 L 433.398438 73.699219 L 440.800781 92.101562 L 460.398438 92.101562 L 423.398438 0 Z M 396.199219 0"/><path d="M 497.398438 0 L 479.398438 0 L 479.398438 92.101562 L 497.398438 92.101562 Z M 497.398438 0"/><path d="M 597 0 L 597 63.601562 L 540.898438 0 L 524.601562 0 L 524.601562 92.101562 L 542.601562 92.101562 L 542.601562 28.601562 L 598.699219 92.199219 L 615 92.199219 L 615 0 Z M 597 0"/></svg>
+        <div style={{fontFamily:"'Optician Sans','Inter',sans-serif",fontSize:42,fontWeight:500,color:"#fff",letterSpacing:"-0.02em",lineHeight:1.1,marginBottom:8}}>COMPASS</div>
+        <div style={{display:"inline-block",padding:"4px 12px",background:"rgba(0,184,156,0.25)",borderRadius:999,fontSize:11,fontWeight:600,color:"#00B89C",letterSpacing:"0.1em"}}>BETA</div>
+      </div>
     </div>
   </div>
 </div>);}
